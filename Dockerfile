@@ -1,10 +1,10 @@
-FROM golang:1.25.3 AS build
+FROM golang:1.23-bookworm AS build
 COPY . ./
 RUN go install github.com/a-h/templ/cmd/templ@v0.3.943
 RUN templ generate
 RUN CGO_ENABLED=1 go build -o "/bin/openuem-console" .
 
-FROM debian:latest
+FROM debian:bookworm-slim
 COPY --from=build /bin/openuem-console /bin/openuem-console
 COPY ./assets /bin/assets
 RUN apt-get update
