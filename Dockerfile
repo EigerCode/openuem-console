@@ -1,5 +1,8 @@
 FROM golang:1.23-bookworm AS build
 COPY . ./
+
+ENV GOTOOLCHAIN=auto
+
 RUN go install github.com/a-h/templ/cmd/templ@v0.3.943
 RUN templ generate
 RUN CGO_ENABLED=1 go build -o "/bin/openuem-console" .
