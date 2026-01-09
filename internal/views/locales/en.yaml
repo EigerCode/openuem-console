@@ -819,6 +819,8 @@ en:
     saved: "Branding settings saved successfully"
     logo_uploaded: "Logo uploaded successfully"
     logo_deleted: "Logo deleted successfully"
+    no_file_selected: "Please select a file to upload"
+    invalid_image: "Invalid image file. Please upload a PNG, JPEG, or SVG file."
   smtp:
     title: "SMTP"
     description: "Configure your SMTP provider in order to send email notifications."

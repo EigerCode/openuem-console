@@ -10,17 +10,22 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/open-uem/ent"
 	"github.com/open-uem/openuem-console/internal/views/admin_views"
+	"github.com/open-uem/openuem-console/internal/views/partials"
 )
 
 // GetBrandingSettings handles GET /admin/branding
 func (h *Handler) GetBrandingSettings(c echo.Context) error {
-	branding, err := h.Model.GetOrCreateBranding()
+	commonInfo, err := h.GetCommonInfo(c)
 	if err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return err
 	}
 
-	commonInfo := h.GetCommonInfo(c)
-	return renderView(c, admin_views.BrandingSettings(c, branding, commonInfo, ""))
+	branding, err := h.Model.GetOrCreateBranding()
+	if err != nil {
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
+	}
+
+	return RenderView(c, admin_views.BrandingSettings(c, branding, commonInfo, ""))
 }
 
 // PostBrandingLogoLight handles POST /admin/branding/logo-light
@@ -41,7 +46,7 @@ func (h *Handler) PostBrandingLogoSmall(c echo.Context) error {
 // DeleteBrandingLogoLight handles DELETE /admin/branding/logo-light
 func (h *Handler) DeleteBrandingLogoLight(c echo.Context) error {
 	if err := h.Model.DeleteLogoLight(); err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.logo_deleted"))
 }
@@ -49,7 +54,7 @@ func (h *Handler) DeleteBrandingLogoLight(c echo.Context) error {
 // DeleteBrandingLogoDark handles DELETE /admin/branding/logo-dark
 func (h *Handler) DeleteBrandingLogoDark(c echo.Context) error {
 	if err := h.Model.DeleteLogoDark(); err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.logo_deleted"))
 }
@@ -57,7 +62,7 @@ func (h *Handler) DeleteBrandingLogoDark(c echo.Context) error {
 // DeleteBrandingLogoSmall handles DELETE /admin/branding/logo-small
 func (h *Handler) DeleteBrandingLogoSmall(c echo.Context) error {
 	if err := h.Model.DeleteLogoSmall(); err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.logo_deleted"))
 }
@@ -80,7 +85,7 @@ func (h *Handler) PostBrandingColors(c echo.Context) error {
 	}
 
 	if err := h.Model.UpdateColors(primary, secondary, accent); err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
 	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.saved"))
@@ -90,7 +95,7 @@ func (h *Handler) PostBrandingColors(c echo.Context) error {
 func (h *Handler) PostBrandingText(c echo.Context) error {
 	branding, err := h.Model.GetOrCreateBranding()
 	if err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
 	branding.ProductName = c.FormValue("product_name")
@@ -102,7 +107,7 @@ func (h *Handler) PostBrandingText(c echo.Context) error {
 	branding.ShowPoweredBy = c.FormValue("show_powered_by") == "on"
 
 	if err := h.Model.UpdateBranding(branding); err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
 	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.saved"))
@@ -112,7 +117,7 @@ func (h *Handler) PostBrandingText(c echo.Context) error {
 func (h *Handler) PostBrandingLogin(c echo.Context) error {
 	branding, err := h.Model.GetOrCreateBranding()
 	if err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
 	branding.LoginWelcomeText = c.FormValue("login_welcome_text")
@@ -122,18 +127,18 @@ func (h *Handler) PostBrandingLogin(c echo.Context) error {
 	if err == nil && file != nil {
 		src, err := file.Open()
 		if err != nil {
-			return renderError(c, err, http.StatusInternalServerError)
+			return RenderError(c, partials.ErrorMessage(err.Error(), true))
 		}
 		defer src.Close()
 
 		data, err := io.ReadAll(src)
 		if err != nil {
-			return renderError(c, err, http.StatusInternalServerError)
+			return RenderError(c, partials.ErrorMessage(err.Error(), true))
 		}
 
 		mimeType := http.DetectContentType(data)
 		if !strings.HasPrefix(mimeType, "image/") {
-			return renderError(c, echo.NewHTTPError(http.StatusBadRequest, "Invalid image file"), http.StatusBadRequest)
+			return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "branding.invalid_image"), true))
 		}
 
 		base64Data := base64.StdEncoding.EncodeToString(data)
@@ -141,7 +146,7 @@ func (h *Handler) PostBrandingLogin(c echo.Context) error {
 	}
 
 	if err := h.Model.UpdateBranding(branding); err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
 	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.saved"))
@@ -151,12 +156,12 @@ func (h *Handler) PostBrandingLogin(c echo.Context) error {
 func (h *Handler) DeleteBrandingLoginBackground(c echo.Context) error {
 	branding, err := h.Model.GetBranding()
 	if err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
 	branding.LoginBackgroundImage = ""
 	if err := h.Model.UpdateBranding(branding); err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
 	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.logo_deleted"))
@@ -166,18 +171,18 @@ func (h *Handler) DeleteBrandingLoginBackground(c echo.Context) error {
 func (h *Handler) handleLogoUpload(c echo.Context, logoType string) error {
 	file, err := c.FormFile("logo")
 	if err != nil {
-		return renderError(c, err, http.StatusBadRequest)
+		return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "branding.no_file_selected"), true))
 	}
 
 	src, err := file.Open()
 	if err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 	defer src.Close()
 
 	data, err := io.ReadAll(src)
 	if err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
 	// Detect MIME type
@@ -187,7 +192,7 @@ func (h *Handler) handleLogoUpload(c echo.Context, logoType string) error {
 		if strings.HasSuffix(strings.ToLower(file.Filename), ".svg") {
 			mimeType = "image/svg+xml"
 		} else {
-			return renderError(c, echo.NewHTTPError(http.StatusBadRequest, "Invalid image file"), http.StatusBadRequest)
+			return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "branding.invalid_image"), true))
 		}
 	}
 
@@ -207,7 +212,7 @@ func (h *Handler) handleLogoUpload(c echo.Context, logoType string) error {
 	}
 
 	if saveErr != nil {
-		return renderError(c, saveErr, http.StatusInternalServerError)
+		return RenderError(c, partials.ErrorMessage(saveErr.Error(), true))
 	}
 
 	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.logo_uploaded"))
@@ -215,13 +220,17 @@ func (h *Handler) handleLogoUpload(c echo.Context, logoType string) error {
 
 // renderBrandingWithSuccess renders the branding page with a success message
 func (h *Handler) renderBrandingWithSuccess(c echo.Context, message string) error {
-	branding, err := h.Model.GetOrCreateBranding()
+	commonInfo, err := h.GetCommonInfo(c)
 	if err != nil {
-		return renderError(c, err, http.StatusInternalServerError)
+		return err
 	}
 
-	commonInfo := h.GetCommonInfo(c)
-	return renderView(c, admin_views.BrandingSettings(c, branding, commonInfo, message))
+	branding, err := h.Model.GetOrCreateBranding()
+	if err != nil {
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
+	}
+
+	return RenderView(c, admin_views.BrandingSettings(c, branding, commonInfo, message))
 }
 
 // GetBrandingForViews returns branding data for use in views
