@@ -247,5 +247,21 @@ templ ConfigNavbar(active string, agentsExists, serversExists bool, commonInfo *
 				{ i18n.T(ctx, "General Settings") }
 			</a>
 		</li>
+		if commonInfo.TenantID == "-1" {
+			<li class={ templ.KV("uk-active", active == "branding") }>
+				<a
+					href="/admin/branding"
+					hx-get="/admin/branding"
+					hx-push-url="true"
+					hx-target="#main"
+					hx-swap="outerHTML"
+					hx-indicator="#admin-branding-spinner"
+					class="flex items-center gap-1"
+				>
+					<uk-icon id="admin-branding-spinner" hx-history="false" icon="loader-circle" custom-class="htmx-indicator h-4 w-4 animate-spin" uk-cloack></uk-icon>
+					{ i18n.T(ctx, "branding.title") }
+				</a>
+			</li>
+		}
 	</ul>
 }

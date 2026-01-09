@@ -1,0 +1,447 @@
+package admin_views
+
+import (
+	"github.com/invopop/ctxi18n/i18n"
+	"github.com/labstack/echo/v4"
+	"github.com/open-uem/ent"
+	"github.com/open-uem/openuem-console/internal/views/partials"
+)
+
+templ BrandingSettings(c echo.Context, branding *ent.Branding, commonInfo *partials.CommonInfo, successMessage string) {
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Global Config"), Url: "/admin/users"}, {Title: i18n.T(ctx, "branding.title"), Url: "/admin/branding"}}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@ConfigNavbar("branding", false, false, commonInfo)
+				if successMessage != "" {
+					@partials.SuccessMessage(successMessage)
+				} else {
+					<div id="success" class="hidden"></div>
+				}
+				<div id="error" class="hidden"></div>
+				
+				<!-- Logo Settings -->
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "branding.logos.title") }</h3>
+						<p class="uk-margin-small-top uk-text-small">
+							{ i18n.T(ctx, "branding.logos.description") }
+						</p>
+					</div>
+					<div class="uk-card-body">
+						<div class="grid grid-cols-3 gap-6">
+							<!-- Light Mode Logo -->
+							<div class="flex flex-col gap-2">
+								<label class="uk-form-label">{ i18n.T(ctx, "branding.logo_light") }</label>
+								<div class="border rounded p-4 flex items-center justify-center h-32 bg-white">
+									if branding != nil && branding.LogoLight != "" {
+										<img src={ branding.LogoLight } alt="Logo Light" class="max-h-24 max-w-full object-contain"/>
+									} else {
+										<img src="/assets/img/openuem.png" alt="Default Logo" class="max-h-24 max-w-full object-contain"/>
+									}
+								</div>
+								<form
+									hx-post="/admin/branding/logo-light"
+									hx-encoding="multipart/form-data"
+									hx-target="#main"
+									hx-swap="outerHTML"
+									class="flex flex-col gap-2"
+								>
+									<input type="file" name="logo" accept="image/png,image/jpeg,image/svg+xml" class="uk-input"/>
+									<div class="flex gap-2">
+										<button type="submit" class="uk-button uk-button-primary uk-button-small">
+											<uk-icon icon="upload" custom-class="h-4 w-4 mr-1"></uk-icon>
+											{ i18n.T(ctx, "Upload") }
+										</button>
+										if branding != nil && branding.LogoLight != "" {
+											<button
+												type="button"
+												hx-delete="/admin/branding/logo-light"
+												hx-target="#main"
+												hx-swap="outerHTML"
+												class="uk-button uk-button-danger uk-button-small"
+											>
+												<uk-icon icon="trash" custom-class="h-4 w-4 mr-1"></uk-icon>
+												{ i18n.T(ctx, "Delete") }
+											</button>
+										}
+									</div>
+								</form>
+							</div>
+							
+							<!-- Dark Mode Logo -->
+							<div class="flex flex-col gap-2">
+								<label class="uk-form-label">{ i18n.T(ctx, "branding.logo_dark") }</label>
+								<div class="border rounded p-4 flex items-center justify-center h-32 bg-gray-900">
+									if branding != nil && branding.LogoDark != "" {
+										<img src={ branding.LogoDark } alt="Logo Dark" class="max-h-24 max-w-full object-contain"/>
+									} else {
+										<img src="/assets/img/openuem.png" alt="Default Logo" class="max-h-24 max-w-full object-contain brightness-[0.8] grayscale"/>
+									}
+								</div>
+								<form
+									hx-post="/admin/branding/logo-dark"
+									hx-encoding="multipart/form-data"
+									hx-target="#main"
+									hx-swap="outerHTML"
+									class="flex flex-col gap-2"
+								>
+									<input type="file" name="logo" accept="image/png,image/jpeg,image/svg+xml" class="uk-input"/>
+									<div class="flex gap-2">
+										<button type="submit" class="uk-button uk-button-primary uk-button-small">
+											<uk-icon icon="upload" custom-class="h-4 w-4 mr-1"></uk-icon>
+											{ i18n.T(ctx, "Upload") }
+										</button>
+										if branding != nil && branding.LogoDark != "" {
+											<button
+												type="button"
+												hx-delete="/admin/branding/logo-dark"
+												hx-target="#main"
+												hx-swap="outerHTML"
+												class="uk-button uk-button-danger uk-button-small"
+											>
+												<uk-icon icon="trash" custom-class="h-4 w-4 mr-1"></uk-icon>
+												{ i18n.T(ctx, "Delete") }
+											</button>
+										}
+									</div>
+								</form>
+							</div>
+							
+							<!-- Small Logo / Favicon -->
+							<div class="flex flex-col gap-2">
+								<label class="uk-form-label">{ i18n.T(ctx, "branding.logo_small") }</label>
+								<div class="border rounded p-4 flex items-center justify-center h-32 bg-gray-100">
+									if branding != nil && branding.LogoSmall != "" {
+										<img src={ branding.LogoSmall } alt="Logo Small" class="max-h-16 max-w-16 object-contain"/>
+									} else {
+										<uk-icon icon="image" custom-class="h-16 w-16 text-gray-400"></uk-icon>
+									}
+								</div>
+								<form
+									hx-post="/admin/branding/logo-small"
+									hx-encoding="multipart/form-data"
+									hx-target="#main"
+									hx-swap="outerHTML"
+									class="flex flex-col gap-2"
+								>
+									<input type="file" name="logo" accept="image/png,image/jpeg,image/svg+xml,image/x-icon" class="uk-input"/>
+									<div class="flex gap-2">
+										<button type="submit" class="uk-button uk-button-primary uk-button-small">
+											<uk-icon icon="upload" custom-class="h-4 w-4 mr-1"></uk-icon>
+											{ i18n.T(ctx, "Upload") }
+										</button>
+										if branding != nil && branding.LogoSmall != "" {
+											<button
+												type="button"
+												hx-delete="/admin/branding/logo-small"
+												hx-target="#main"
+												hx-swap="outerHTML"
+												class="uk-button uk-button-danger uk-button-small"
+											>
+												<uk-icon icon="trash" custom-class="h-4 w-4 mr-1"></uk-icon>
+												{ i18n.T(ctx, "Delete") }
+											</button>
+										}
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+				
+				<!-- Color Settings -->
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "branding.colors.title") }</h3>
+						<p class="uk-margin-small-top uk-text-small">
+							{ i18n.T(ctx, "branding.colors.description") }
+						</p>
+					</div>
+					<div class="uk-card-body">
+						<form
+							hx-post="/admin/branding/colors"
+							hx-target="#main"
+							hx-swap="outerHTML"
+							class="uk-form-stacked"
+						>
+							<div class="grid grid-cols-3 gap-6">
+								<div class="uk-margin">
+									<label class="uk-form-label" for="primary-color">{ i18n.T(ctx, "branding.primary_color") }</label>
+									<div class="flex items-center gap-2">
+										<input
+											type="color"
+											id="primary-color"
+											name="primary_color"
+											value={ getBrandingValue(branding, "primary_color", "#16a34a") }
+											class="h-10 w-20 cursor-pointer"
+										/>
+										<input
+											type="text"
+											name="primary_color_text"
+											value={ getBrandingValue(branding, "primary_color", "#16a34a") }
+											class="uk-input w-28"
+											pattern="^#[0-9A-Fa-f]{6}$"
+											_="on input set #primary-color.value to my value"
+										/>
+									</div>
+								</div>
+								<div class="uk-margin">
+									<label class="uk-form-label" for="secondary-color">{ i18n.T(ctx, "branding.secondary_color") }</label>
+									<div class="flex items-center gap-2">
+										<input
+											type="color"
+											id="secondary-color"
+											name="secondary_color"
+											value={ getBrandingValue(branding, "secondary_color", "#6d28d9") }
+											class="h-10 w-20 cursor-pointer"
+										/>
+										<input
+											type="text"
+											name="secondary_color_text"
+											value={ getBrandingValue(branding, "secondary_color", "#6d28d9") }
+											class="uk-input w-28"
+											pattern="^#[0-9A-Fa-f]{6}$"
+											_="on input set #secondary-color.value to my value"
+										/>
+									</div>
+								</div>
+								<div class="uk-margin">
+									<label class="uk-form-label" for="accent-color">{ i18n.T(ctx, "branding.accent_color") }</label>
+									<div class="flex items-center gap-2">
+										<input
+											type="color"
+											id="accent-color"
+											name="accent_color"
+											value={ getBrandingValue(branding, "accent_color", "#0ea5e9") }
+											class="h-10 w-20 cursor-pointer"
+										/>
+										<input
+											type="text"
+											name="accent_color_text"
+											value={ getBrandingValue(branding, "accent_color", "#0ea5e9") }
+											class="uk-input w-28"
+											pattern="^#[0-9A-Fa-f]{6}$"
+											_="on input set #accent-color.value to my value"
+										/>
+									</div>
+								</div>
+							</div>
+							<div class="mt-4">
+								<button type="submit" class="uk-button uk-button-primary">
+									<uk-icon icon="save" custom-class="h-4 w-4 mr-2"></uk-icon>
+									{ i18n.T(ctx, "Save") }
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+				
+				<!-- Text Customization -->
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "branding.text.title") }</h3>
+						<p class="uk-margin-small-top uk-text-small">
+							{ i18n.T(ctx, "branding.text.description") }
+						</p>
+					</div>
+					<div class="uk-card-body">
+						<form
+							hx-post="/admin/branding/text"
+							hx-target="#main"
+							hx-swap="outerHTML"
+							class="uk-form-stacked"
+						>
+							<div class="grid grid-cols-2 gap-6">
+								<div class="uk-margin">
+									<label class="uk-form-label" for="product-name">{ i18n.T(ctx, "branding.product_name") }</label>
+									<input
+										type="text"
+										id="product-name"
+										name="product_name"
+										value={ getBrandingValue(branding, "product_name", "OpenUEM") }
+										class="uk-input"
+									/>
+								</div>
+								<div class="uk-margin">
+									<label class="uk-form-label" for="support-email">{ i18n.T(ctx, "branding.support_email") }</label>
+									<input
+										type="email"
+										id="support-email"
+										name="support_email"
+										value={ getBrandingValue(branding, "support_email", "") }
+										class="uk-input"
+										placeholder="support@example.com"
+									/>
+								</div>
+								<div class="uk-margin">
+									<label class="uk-form-label" for="support-url">{ i18n.T(ctx, "branding.support_url") }</label>
+									<input
+										type="url"
+										id="support-url"
+										name="support_url"
+										value={ getBrandingValue(branding, "support_url", "") }
+										class="uk-input"
+										placeholder="https://support.example.com"
+									/>
+								</div>
+								<div class="uk-margin">
+									<label class="uk-form-label" for="terms-url">{ i18n.T(ctx, "branding.terms_url") }</label>
+									<input
+										type="url"
+										id="terms-url"
+										name="terms_url"
+										value={ getBrandingValue(branding, "terms_url", "") }
+										class="uk-input"
+										placeholder="https://example.com/terms"
+									/>
+								</div>
+								<div class="uk-margin">
+									<label class="uk-form-label" for="privacy-url">{ i18n.T(ctx, "branding.privacy_url") }</label>
+									<input
+										type="url"
+										id="privacy-url"
+										name="privacy_url"
+										value={ getBrandingValue(branding, "privacy_url", "") }
+										class="uk-input"
+										placeholder="https://example.com/privacy"
+									/>
+								</div>
+								<div class="uk-margin">
+									<label class="uk-form-label" for="footer-text">{ i18n.T(ctx, "branding.footer_text") }</label>
+									<input
+										type="text"
+										id="footer-text"
+										name="footer_text"
+										value={ getBrandingValue(branding, "footer_text", "") }
+										class="uk-input"
+										placeholder="© 2026 Your Company"
+									/>
+								</div>
+							</div>
+							<div class="uk-margin">
+								<label class="flex items-center gap-2">
+									<input
+										type="checkbox"
+										name="show_powered_by"
+										class="uk-checkbox"
+										checked?={ branding == nil || branding.ShowPoweredBy }
+									/>
+									<span>{ i18n.T(ctx, "branding.show_powered_by") }</span>
+								</label>
+							</div>
+							<div class="mt-4">
+								<button type="submit" class="uk-button uk-button-primary">
+									<uk-icon icon="save" custom-class="h-4 w-4 mr-2"></uk-icon>
+									{ i18n.T(ctx, "Save") }
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+				
+				<!-- Login Page Customization -->
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "branding.login.title") }</h3>
+						<p class="uk-margin-small-top uk-text-small">
+							{ i18n.T(ctx, "branding.login.description") }
+						</p>
+					</div>
+					<div class="uk-card-body">
+						<form
+							hx-post="/admin/branding/login"
+							hx-encoding="multipart/form-data"
+							hx-target="#main"
+							hx-swap="outerHTML"
+							class="uk-form-stacked"
+						>
+							<div class="uk-margin">
+								<label class="uk-form-label" for="login-welcome">{ i18n.T(ctx, "branding.login_welcome") }</label>
+								<input
+									type="text"
+									id="login-welcome"
+									name="login_welcome_text"
+									value={ getBrandingValue(branding, "login_welcome_text", "") }
+									class="uk-input"
+									placeholder="Welcome to our platform"
+								/>
+							</div>
+							<div class="uk-margin">
+								<label class="uk-form-label">{ i18n.T(ctx, "branding.login_background") }</label>
+								<div class="flex items-start gap-4">
+									<div class="border rounded p-2 w-48 h-32 flex items-center justify-center bg-gray-100">
+										if branding != nil && branding.LoginBackgroundImage != "" {
+											<img src={ branding.LoginBackgroundImage } alt="Login Background" class="max-h-full max-w-full object-cover"/>
+										} else {
+											<uk-icon icon="image" custom-class="h-12 w-12 text-gray-400"></uk-icon>
+										}
+									</div>
+									<div class="flex flex-col gap-2">
+										<input type="file" name="login_background" accept="image/png,image/jpeg" class="uk-input"/>
+										if branding != nil && branding.LoginBackgroundImage != "" {
+											<button
+												type="button"
+												hx-delete="/admin/branding/login-background"
+												hx-target="#main"
+												hx-swap="outerHTML"
+												class="uk-button uk-button-danger uk-button-small"
+											>
+												<uk-icon icon="trash" custom-class="h-4 w-4 mr-1"></uk-icon>
+												{ i18n.T(ctx, "Delete") }
+											</button>
+										}
+									</div>
+								</div>
+							</div>
+							<div class="mt-4">
+								<button type="submit" class="uk-button uk-button-primary">
+									<uk-icon icon="save" custom-class="h-4 w-4 mr-2"></uk-icon>
+									{ i18n.T(ctx, "Save") }
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+// Helper function to get branding value with default
+func getBrandingValue(b *ent.Branding, field string, defaultValue string) string {
+	if b == nil {
+		return defaultValue
+	}
+	switch field {
+	case "primary_color":
+		if b.PrimaryColor != "" {
+			return b.PrimaryColor
+		}
+	case "secondary_color":
+		if b.SecondaryColor != "" {
+			return b.SecondaryColor
+		}
+	case "accent_color":
+		if b.AccentColor != "" {
+			return b.AccentColor
+		}
+	case "product_name":
+		if b.ProductName != "" {
+			return b.ProductName
+		}
+	case "support_url":
+		return b.SupportURL
+	case "support_email":
+		return b.SupportEmail
+	case "terms_url":
+		return b.TermsURL
+	case "privacy_url":
+		return b.PrivacyURL
+	case "footer_text":
+		return b.FooterText
+	case "login_welcome_text":
+		return b.LoginWelcomeText
+	}
+	return defaultValue
+}
