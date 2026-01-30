@@ -62,6 +62,8 @@ func (h *Handler) GetCommonInfo(c echo.Context) (*partials.CommonInfo, error) {
 		if info.IsAdmin {
 			info.TenantID = "-1"
 			info.SiteID = "-1"
+			// Load branding settings for admin pages
+			info.Branding, _ = h.Model.GetOrCreateBranding()
 			return &info, nil
 		}
 		tenant, err = h.Model.GetDefaultTenant()
@@ -126,6 +128,9 @@ func (h *Handler) GetCommonInfo(c echo.Context) (*partials.CommonInfo, error) {
 	if err != nil {
 		return nil, errors.New(i18n.T(c.Request().Context(), "settings.could_not_get_detect_remote_agents_setting"))
 	}
+
+	// Load branding settings
+	info.Branding, _ = h.Model.GetOrCreateBranding()
 
 	return &info, nil
 }

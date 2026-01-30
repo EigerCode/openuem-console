@@ -145,26 +145,16 @@ func (m *Model) SaveLogoSmall(logoData string) error {
 		Exec(context.Background())
 }
 
-// UpdateColors updates the color scheme.
-func (m *Model) UpdateColors(primary, secondary, accent string) error {
+// UpdatePrimaryColor updates the primary color.
+func (m *Model) UpdatePrimaryColor(primary string) error {
 	b, err := m.GetOrCreateBranding()
 	if err != nil {
 		return err
 	}
-	
-	update := m.Client.Branding.UpdateOneID(b.ID)
-	
-	if primary != "" {
-		update = update.SetPrimaryColor(primary)
-	}
-	if secondary != "" {
-		update = update.SetSecondaryColor(secondary)
-	}
-	if accent != "" {
-		update = update.SetAccentColor(accent)
-	}
-	
-	return update.Exec(context.Background())
+
+	return m.Client.Branding.UpdateOneID(b.ID).
+		SetPrimaryColor(primary).
+		Exec(context.Background())
 }
 
 // BrandingExists checks if branding settings exist.
