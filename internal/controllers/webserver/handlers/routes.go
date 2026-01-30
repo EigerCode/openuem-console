@@ -119,15 +119,14 @@ func (h *Handler) Register(e *echo.Echo) {
 	e.GET("/admin/settings", h.GeneralSettings, h.IsAuthenticated)
 	e.POST("/admin/settings", h.GeneralSettings, h.IsAuthenticated)
 	e.GET("/admin/branding", h.GetBrandingSettings, h.IsAuthenticated)
-	e.POST("/admin/branding/logo-light", h.PostBrandingLogoLight, h.IsAuthenticated)
-	e.POST("/admin/branding/logo-dark", h.PostBrandingLogoDark, h.IsAuthenticated)
-	e.POST("/admin/branding/logo-small", h.PostBrandingLogoSmall, h.IsAuthenticated)
-	e.DELETE("/admin/branding/logo-light", h.DeleteBrandingLogoLight, h.IsAuthenticated)
-	e.DELETE("/admin/branding/logo-dark", h.DeleteBrandingLogoDark, h.IsAuthenticated)
-	e.DELETE("/admin/branding/logo-small", h.DeleteBrandingLogoSmall, h.IsAuthenticated)
+	e.POST("/admin/branding/logo", h.PostBrandingLogo, h.IsAuthenticated)
+	e.DELETE("/admin/branding/logo", h.DeleteBrandingLogo, h.IsAuthenticated)
+	e.POST("/admin/branding/favicon", h.PostBrandingFavicon, h.IsAuthenticated)
+	e.DELETE("/admin/branding/favicon", h.DeleteBrandingFavicon, h.IsAuthenticated)
+	e.POST("/admin/branding/product-name", h.PostBrandingProductName, h.IsAuthenticated)
 	e.POST("/admin/branding/colors", h.PostBrandingColors, h.IsAuthenticated)
-	e.POST("/admin/branding/text", h.PostBrandingText, h.IsAuthenticated)
 	e.POST("/admin/branding/login", h.PostBrandingLogin, h.IsAuthenticated)
+	e.POST("/admin/branding/login-background", h.PostBrandingLoginBackground, h.IsAuthenticated)
 	e.DELETE("/admin/branding/login-background", h.DeleteBrandingLoginBackground, h.IsAuthenticated)
 	e.GET("/admin/certificates", h.ListCertificates, h.IsAuthenticated)
 	e.POST("/admin/certificates", h.CertificateConfirmRevocation, h.IsAuthenticated)
@@ -575,7 +574,8 @@ func (h *Handler) IsAuthenticated(next echo.HandlerFunc) echo.HandlerFunc {
 				if !ok || csrfToken == "" {
 					return echo.NewHTTPError(http.StatusForbidden, i18n.T(c.Request().Context(), "authentication.csrf_token_not_found"))
 				}
-				return RenderLogin(c, login_views.LoginIndex(login_views.Enter2FA(username), csrfToken))
+				branding, _ := h.Model.GetOrCreateBranding()
+				return RenderLogin(c, login_views.LoginIndex(login_views.Enter2FA(username, branding), csrfToken, branding))
 			}
 		}
 

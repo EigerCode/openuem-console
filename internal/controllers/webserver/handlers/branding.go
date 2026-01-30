@@ -13,6 +13,13 @@ import (
 	"github.com/open-uem/openuem-console/internal/views/partials"
 )
 
+const (
+	// maxLogoSize is the maximum file size for logo uploads (2MB)
+	maxLogoSize = 2 * 1024 * 1024
+	// maxBackgroundSize is the maximum file size for background images (5MB)
+	maxBackgroundSize = 5 * 1024 * 1024
+)
+
 // GetBrandingSettings handles GET /admin/branding
 func (h *Handler) GetBrandingSettings(c echo.Context) error {
 	commonInfo, err := h.GetCommonInfo(c)
@@ -25,95 +32,79 @@ func (h *Handler) GetBrandingSettings(c echo.Context) error {
 		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
-	return RenderView(c, admin_views.BrandingSettings(c, branding, commonInfo, ""))
+	return RenderView(c, admin_views.BrandingSettingsIndex(" | Branding", admin_views.BrandingSettings(c, branding, commonInfo, ""), commonInfo))
 }
 
-// PostBrandingLogoLight handles POST /admin/branding/logo-light
-func (h *Handler) PostBrandingLogoLight(c echo.Context) error {
+// PostBrandingLogo handles POST /admin/branding/logo (single logo)
+func (h *Handler) PostBrandingLogo(c echo.Context) error {
 	return h.handleLogoUpload(c, "light")
 }
 
-// PostBrandingLogoDark handles POST /admin/branding/logo-dark
-func (h *Handler) PostBrandingLogoDark(c echo.Context) error {
-	return h.handleLogoUpload(c, "dark")
-}
-
-// PostBrandingLogoSmall handles POST /admin/branding/logo-small
-func (h *Handler) PostBrandingLogoSmall(c echo.Context) error {
-	return h.handleLogoUpload(c, "small")
-}
-
-// DeleteBrandingLogoLight handles DELETE /admin/branding/logo-light
-func (h *Handler) DeleteBrandingLogoLight(c echo.Context) error {
+// DeleteBrandingLogo handles DELETE /admin/branding/logo
+func (h *Handler) DeleteBrandingLogo(c echo.Context) error {
 	if err := h.Model.DeleteLogoLight(); err != nil {
 		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.logo_deleted"))
 }
 
-// DeleteBrandingLogoDark handles DELETE /admin/branding/logo-dark
-func (h *Handler) DeleteBrandingLogoDark(c echo.Context) error {
-	if err := h.Model.DeleteLogoDark(); err != nil {
-		return RenderError(c, partials.ErrorMessage(err.Error(), true))
-	}
-	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.logo_deleted"))
+// PostBrandingFavicon handles POST /admin/branding/favicon
+func (h *Handler) PostBrandingFavicon(c echo.Context) error {
+	return h.handleLogoUpload(c, "small")
 }
 
-// DeleteBrandingLogoSmall handles DELETE /admin/branding/logo-small
-func (h *Handler) DeleteBrandingLogoSmall(c echo.Context) error {
+// DeleteBrandingFavicon handles DELETE /admin/branding/favicon
+func (h *Handler) DeleteBrandingFavicon(c echo.Context) error {
 	if err := h.Model.DeleteLogoSmall(); err != nil {
 		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
-	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.logo_deleted"))
+	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.favicon_deleted"))
 }
 
-// PostBrandingColors handles POST /admin/branding/colors
-func (h *Handler) PostBrandingColors(c echo.Context) error {
-	primary := c.FormValue("primary_color")
-	secondary := c.FormValue("secondary_color")
-	accent := c.FormValue("accent_color")
-
-	// Use text input if color picker value is empty
-	if c.FormValue("primary_color_text") != "" {
-		primary = c.FormValue("primary_color_text")
-	}
-	if c.FormValue("secondary_color_text") != "" {
-		secondary = c.FormValue("secondary_color_text")
-	}
-	if c.FormValue("accent_color_text") != "" {
-		accent = c.FormValue("accent_color_text")
+// PostBrandingProductName handles POST /admin/branding/product-name
+func (h *Handler) PostBrandingProductName(c echo.Context) error {
+	productName := c.FormValue("product_name")
+	if productName == "" {
+		productName = "OpenUEM"
 	}
 
-	if err := h.Model.UpdateColors(primary, secondary, accent); err != nil {
-		return RenderError(c, partials.ErrorMessage(err.Error(), true))
-	}
-
-	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.saved"))
-}
-
-// PostBrandingText handles POST /admin/branding/text
-func (h *Handler) PostBrandingText(c echo.Context) error {
 	branding, err := h.Model.GetOrCreateBranding()
 	if err != nil {
 		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
-	branding.ProductName = c.FormValue("product_name")
-	branding.SupportEmail = c.FormValue("support_email")
-	branding.SupportURL = c.FormValue("support_url")
-	branding.TermsURL = c.FormValue("terms_url")
-	branding.PrivacyURL = c.FormValue("privacy_url")
-	branding.FooterText = c.FormValue("footer_text")
-	branding.ShowPoweredBy = c.FormValue("show_powered_by") == "on"
-
+	branding.ProductName = productName
 	if err := h.Model.UpdateBranding(branding); err != nil {
 		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
-	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.saved"))
+	// Force a full page reload to update the header
+	c.Response().Header().Set("HX-Redirect", "/admin/branding")
+	return c.NoContent(http.StatusOK)
 }
 
-// PostBrandingLogin handles POST /admin/branding/login
+// PostBrandingColors handles POST /admin/branding/colors
+func (h *Handler) PostBrandingColors(c echo.Context) error {
+	// The text input is synced with the color picker via JavaScript
+	// Use the text input value as it is always up-to-date
+	primary := c.FormValue("primary_color_text")
+
+	// Fallback to color picker value if text input is empty
+	if primary == "" {
+		primary = c.FormValue("primary_color")
+	}
+
+	if err := h.Model.UpdatePrimaryColor(primary); err != nil {
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
+	}
+
+	// Force a full page reload by redirecting to the same page
+	// This ensures the new CSS in <head> is loaded
+	c.Response().Header().Set("HX-Redirect", "/admin/branding")
+	return c.NoContent(http.StatusOK)
+}
+
+// PostBrandingLogin handles POST /admin/branding/login (welcome text only)
 func (h *Handler) PostBrandingLogin(c echo.Context) error {
 	branding, err := h.Model.GetOrCreateBranding()
 	if err != nil {
@@ -122,28 +113,49 @@ func (h *Handler) PostBrandingLogin(c echo.Context) error {
 
 	branding.LoginWelcomeText = c.FormValue("login_welcome_text")
 
+	if err := h.Model.UpdateBranding(branding); err != nil {
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
+	}
+
+	return h.renderBrandingWithSuccess(c, i18n.T(c.Request().Context(), "branding.saved"))
+}
+
+// PostBrandingLoginBackground handles POST /admin/branding/login-background
+func (h *Handler) PostBrandingLoginBackground(c echo.Context) error {
+	branding, err := h.Model.GetOrCreateBranding()
+	if err != nil {
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
+	}
+
 	// Handle background image upload
 	file, err := c.FormFile("login_background")
-	if err == nil && file != nil {
-		src, err := file.Open()
-		if err != nil {
-			return RenderError(c, partials.ErrorMessage(err.Error(), true))
-		}
-		defer src.Close()
-
-		data, err := io.ReadAll(src)
-		if err != nil {
-			return RenderError(c, partials.ErrorMessage(err.Error(), true))
-		}
-
-		mimeType := http.DetectContentType(data)
-		if !strings.HasPrefix(mimeType, "image/") {
-			return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "branding.invalid_image"), true))
-		}
-
-		base64Data := base64.StdEncoding.EncodeToString(data)
-		branding.LoginBackgroundImage = "data:" + mimeType + ";base64," + base64Data
+	if err != nil {
+		return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "branding.no_file_selected"), true))
 	}
+
+	// Check file size limit
+	if file.Size > maxBackgroundSize {
+		return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "branding.file_too_large"), true))
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
+	}
+	defer src.Close()
+
+	data, err := io.ReadAll(src)
+	if err != nil {
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
+	}
+
+	mimeType := http.DetectContentType(data)
+	if !strings.HasPrefix(mimeType, "image/") {
+		return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "branding.invalid_image"), true))
+	}
+
+	base64Data := base64.StdEncoding.EncodeToString(data)
+	branding.LoginBackgroundImage = "data:" + mimeType + ";base64," + base64Data
 
 	if err := h.Model.UpdateBranding(branding); err != nil {
 		return RenderError(c, partials.ErrorMessage(err.Error(), true))
@@ -169,9 +181,18 @@ func (h *Handler) DeleteBrandingLoginBackground(c echo.Context) error {
 
 // handleLogoUpload processes logo file uploads
 func (h *Handler) handleLogoUpload(c echo.Context, logoType string) error {
-	file, err := c.FormFile("logo")
+	fieldName := "logo"
+	if logoType == "small" {
+		fieldName = "favicon"
+	}
+
+	file, err := c.FormFile(fieldName)
 	if err != nil {
 		return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "branding.no_file_selected"), true))
+	}
+
+	if file.Size > maxLogoSize {
+		return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "branding.file_too_large"), true))
 	}
 
 	src, err := file.Open()
@@ -185,10 +206,8 @@ func (h *Handler) handleLogoUpload(c echo.Context, logoType string) error {
 		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
-	// Detect MIME type
 	mimeType := http.DetectContentType(data)
 	if !strings.HasPrefix(mimeType, "image/") {
-		// Check for SVG (DetectContentType returns text/xml for SVG)
 		if strings.HasSuffix(strings.ToLower(file.Filename), ".svg") {
 			mimeType = "image/svg+xml"
 		} else {
@@ -196,17 +215,13 @@ func (h *Handler) handleLogoUpload(c echo.Context, logoType string) error {
 		}
 	}
 
-	// Convert to base64 data URL
 	base64Data := base64.StdEncoding.EncodeToString(data)
 	dataURL := "data:" + mimeType + ";base64," + base64Data
 
-	// Save based on logo type
 	var saveErr error
 	switch logoType {
 	case "light":
 		saveErr = h.Model.SaveLogoLight(dataURL)
-	case "dark":
-		saveErr = h.Model.SaveLogoDark(dataURL)
 	case "small":
 		saveErr = h.Model.SaveLogoSmall(dataURL)
 	}
@@ -230,7 +245,7 @@ func (h *Handler) renderBrandingWithSuccess(c echo.Context, message string) erro
 		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
-	return RenderView(c, admin_views.BrandingSettings(c, branding, commonInfo, message))
+	return RenderView(c, admin_views.BrandingSettingsIndex(" | Branding", admin_views.BrandingSettings(c, branding, commonInfo, message), commonInfo))
 }
 
 // GetBrandingForViews returns branding data for use in views
