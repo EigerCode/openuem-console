@@ -7,7 +7,7 @@ COPY . ./
 
 RUN go install github.com/a-h/templ/cmd/templ@v0.3.943
 RUN templ generate
-RUN CGO_ENABLED=1 go build -o "/bin/openuem-console" .
+RUN CGO_ENABLED=0 go build -o "/bin/openuem-console" .
 
 # --- Final Stage ---
 FROM debian:bookworm-slim
