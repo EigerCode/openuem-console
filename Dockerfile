@@ -1,4 +1,4 @@
-FROM golang:1.25.5 AS build
+FROM golang:latest AS build
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
