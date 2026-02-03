@@ -29,6 +29,10 @@ func (m *Model) GetTenantByID(tenantID int) (*ent.Tenant, error) {
 	return m.Client.Tenant.Query().Where(tenant.ID(tenantID)).Only(context.Background())
 }
 
+func (m *Model) GetTenantByName(name string) (*ent.Tenant, error) {
+	return m.Client.Tenant.Query().Where(tenant.Description(name)).Only(context.Background())
+}
+
 func (m *Model) GetTenants() ([]*ent.Tenant, error) {
 	return m.Client.Tenant.Query().All(context.Background())
 }
@@ -187,6 +191,23 @@ func applyTenantsFilter(query *ent.TenantQuery, f filters.TenantFilter) {
 			query.Where(tenant.IsDefaultEQ(false))
 		}
 	}
+}
+
+func (m *Model) GetTenantByOIDCOrgID(orgID string) (*ent.Tenant, error) {
+	return m.Client.Tenant.Query().Where(tenant.OidcOrgID(orgID)).Only(context.Background())
+}
+
+func (m *Model) UpdateTenantOIDC(tenantID int, oidcOrgID string, oidcDefaultRole string) error {
+	query := m.Client.Tenant.UpdateOneID(tenantID)
+	if oidcOrgID != "" {
+		query.SetOidcOrgID(oidcOrgID)
+	} else {
+		query.ClearOidcOrgID()
+	}
+	if oidcDefaultRole != "" {
+		query.SetOidcDefaultRole(tenant.OidcDefaultRole(oidcDefaultRole))
+	}
+	return query.Exec(context.Background())
 }
 
 func (m *Model) GetAgentsByTenant(tenantID int) ([]*ent.Agent, error) {
