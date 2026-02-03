@@ -4,6 +4,10 @@ go 1.25.5
 
 require (
 	entgo.io/ent v0.14.5
+	github.com/EigerCode/ent v0.0.0-20260203194414-cebab8d34238
+	github.com/EigerCode/nats v0.0.0-20260203192215-59b1eb7551d6
+	github.com/EigerCode/utils v0.0.0-20260203190441-952c72a58011
+	github.com/EigerCode/wingetcfg v0.0.0-20251011111407-80e823d91ea5
 	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/a-h/templ v0.3.943
 	github.com/alexedwards/argon2id v1.0.0
@@ -30,10 +34,6 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/mssola/useragent v1.0.0
 	github.com/nats-io/nats.go v1.47.0
-	github.com/EigerCode/ent v0.0.0-20260203194414-cebab8d34238
-	github.com/EigerCode/nats v0.0.0-20260203192215-59b1eb7551d6
-	github.com/EigerCode/utils v0.0.0-20260203190441-952c72a58011
-	github.com/EigerCode/wingetcfg v0.0.0-20251011111407-80e823d91ea5
 	github.com/pkg/sftp v1.13.9
 	github.com/pquerna/otp v1.5.0
 	github.com/sethvargo/go-password v0.3.1
@@ -118,6 +118,6 @@ require (
 )
 
 replace (
-	github.com/EigerCode/wingetcfg => github.com/open-uem/wingetcfg v0.0.0-20251011111407-80e823d91ea5
 	github.com/EigerCode/openuem-ansible-config => github.com/open-uem/openuem-ansible-config v0.0.0-20250710075757-9ef6e3390073
+	github.com/EigerCode/wingetcfg => github.com/open-uem/wingetcfg v0.0.0-20251011111407-80e823d91ea5
 )
