@@ -30,9 +30,9 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/mssola/useragent v1.0.0
 	github.com/nats-io/nats.go v1.47.0
-	github.com/EigerCode/ent v0.0.0-20260121160055-142eb8d57a27
-	github.com/EigerCode/nats v0.0.0-20251220104614-efae26e98557
-	github.com/EigerCode/utils v0.0.0-20251221104611-c55d64529212
+	github.com/EigerCode/ent v0.0.0-20260203194414-cebab8d34238
+	github.com/EigerCode/nats v0.0.0-20260203192215-59b1eb7551d6
+	github.com/EigerCode/utils v0.0.0-20260203190441-952c72a58011
 	github.com/EigerCode/wingetcfg v0.0.0-20251011111407-80e823d91ea5
 	github.com/pkg/sftp v1.13.9
 	github.com/pquerna/otp v1.5.0
@@ -118,9 +118,6 @@ require (
 )
 
 replace (
-	github.com/EigerCode/ent => ../ent
-	github.com/EigerCode/nats => ../nats
-	github.com/EigerCode/utils => ../utils
 	github.com/EigerCode/wingetcfg => github.com/open-uem/wingetcfg v0.0.0-20251011111407-80e823d91ea5
 	github.com/EigerCode/openuem-ansible-config => github.com/open-uem/openuem-ansible-config v0.0.0-20250710075757-9ef6e3390073
 )
