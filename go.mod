@@ -1,4 +1,4 @@
-module github.com/open-uem/openuem-console
+module github.com/EigerCode/openuem-console
 
 go 1.25.5
 
@@ -30,10 +30,10 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/mssola/useragent v1.0.0
 	github.com/nats-io/nats.go v1.47.0
-	github.com/open-uem/ent v0.0.0-20260121160055-142eb8d57a27
-	github.com/open-uem/nats v0.0.0-20251220104614-efae26e98557
-	github.com/open-uem/utils v0.0.0-20251221104611-c55d64529212
-	github.com/open-uem/wingetcfg v0.0.0-20251011111407-80e823d91ea5
+	github.com/EigerCode/ent v0.0.0-20260121160055-142eb8d57a27
+	github.com/EigerCode/nats v0.0.0-20251220104614-efae26e98557
+	github.com/EigerCode/utils v0.0.0-20251221104611-c55d64529212
+	github.com/EigerCode/wingetcfg v0.0.0-20251011111407-80e823d91ea5
 	github.com/pkg/sftp v1.13.9
 	github.com/pquerna/otp v1.5.0
 	github.com/sethvargo/go-password v0.3.1
@@ -51,6 +51,7 @@ require (
 
 require (
 	ariga.io/atlas v0.37.0 // indirect
+	github.com/EigerCode/openuem-ansible-config v0.0.0-20250710075757-9ef6e3390073 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
@@ -90,7 +91,6 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/nats-io/nkeys v0.4.11 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
-	github.com/open-uem/openuem-ansible-config v0.0.0-20250710075757-9ef6e3390073 // indirect
 	github.com/pdfcpu/pdfcpu v0.11.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -115,4 +115,12 @@ require (
 	golang.org/x/tools v0.38.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
+
+replace (
+	github.com/EigerCode/ent => ../ent
+	github.com/EigerCode/nats => ../nats
+	github.com/EigerCode/utils => ../utils
+	github.com/EigerCode/wingetcfg => github.com/open-uem/wingetcfg v0.0.0-20251011111407-80e823d91ea5
+	github.com/EigerCode/openuem-ansible-config => github.com/open-uem/openuem-ansible-config v0.0.0-20250710075757-9ef6e3390073
 )

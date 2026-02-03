@@ -10,11 +10,11 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	openuem_nats "github.com/open-uem/nats"
-	"github.com/open-uem/openuem-console/internal/models"
-	"github.com/open-uem/openuem-console/internal/views/admin_views"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	openuem_nats "github.com/EigerCode/nats"
+	"github.com/EigerCode/openuem-console/internal/models"
+	"github.com/EigerCode/openuem-console/internal/views/admin_views"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 var UpdateChannels = []string{"stable", "devel", "testing"}

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	openuem_nats "github.com/open-uem/nats"
+	openuem_nats "github.com/EigerCode/nats"
 )
 
 func GetLatestServerReleaseFromAPI(tmpDir string) (*openuem_nats.OpenUEMRelease, error) {

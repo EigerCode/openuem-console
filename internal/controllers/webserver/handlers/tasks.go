@@ -10,11 +10,11 @@ import (
 
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/ent/task"
-	"github.com/open-uem/openuem-console/internal/models"
-	"github.com/open-uem/openuem-console/internal/views/partials"
-	"github.com/open-uem/openuem-console/internal/views/tasks_views"
-	"github.com/open-uem/wingetcfg/wingetcfg"
+	"github.com/EigerCode/ent/task"
+	"github.com/EigerCode/openuem-console/internal/models"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
+	"github.com/EigerCode/openuem-console/internal/views/tasks_views"
+	"github.com/EigerCode/wingetcfg/wingetcfg"
 )
 
 func (h *Handler) NewTask(c echo.Context) error {

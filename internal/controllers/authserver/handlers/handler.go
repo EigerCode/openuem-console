@@ -5,8 +5,8 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/openuem-console/internal/controllers/sessions"
-	"github.com/open-uem/openuem-console/internal/models"
+	"github.com/EigerCode/openuem-console/internal/controllers/sessions"
+	"github.com/EigerCode/openuem-console/internal/models"
 )
 
 type Handler struct {

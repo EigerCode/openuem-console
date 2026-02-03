@@ -4,13 +4,13 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/open-uem/ent"
-	"github.com/open-uem/ent/profile"
-	"github.com/open-uem/ent/profileissue"
-	"github.com/open-uem/ent/site"
-	"github.com/open-uem/ent/task"
-	"github.com/open-uem/ent/tenant"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	"github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/profile"
+	"github.com/EigerCode/ent/profileissue"
+	"github.com/EigerCode/ent/site"
+	"github.com/EigerCode/ent/task"
+	"github.com/EigerCode/ent/tenant"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 func (m *Model) CountAllProfiles(c *partials.CommonInfo) (int, error) {

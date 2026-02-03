@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 
 	"github.com/nats-io/nats.go"
-	"github.com/open-uem/openuem-console/internal/models"
+	"github.com/EigerCode/openuem-console/internal/models"
 )
 
 type ConsoleCommand struct {

@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
-	"github.com/open-uem/openuem-console/internal/controllers/authserver"
-	"github.com/open-uem/openuem-console/internal/controllers/sessions"
-	"github.com/open-uem/openuem-console/internal/controllers/webserver"
-	"github.com/open-uem/openuem-console/internal/models"
-	"github.com/open-uem/utils"
+	"github.com/EigerCode/openuem-console/internal/controllers/authserver"
+	"github.com/EigerCode/openuem-console/internal/controllers/sessions"
+	"github.com/EigerCode/openuem-console/internal/controllers/webserver"
+	"github.com/EigerCode/openuem-console/internal/models"
+	"github.com/EigerCode/utils"
 )
 
 type Worker struct {

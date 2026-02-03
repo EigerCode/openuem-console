@@ -9,11 +9,11 @@ import (
 
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	openuem_nats "github.com/open-uem/nats"
-	models "github.com/open-uem/openuem-console/internal/models/winget"
-	"github.com/open-uem/openuem-console/internal/views/deploy_views"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	openuem_nats "github.com/EigerCode/nats"
+	models "github.com/EigerCode/openuem-console/internal/models/winget"
+	"github.com/EigerCode/openuem-console/internal/views/deploy_views"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 func (h *Handler) DeployInstall(c echo.Context) error {

@@ -6,10 +6,10 @@ import (
 
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	openuem_nats "github.com/open-uem/nats"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
-	"github.com/open-uem/openuem-console/internal/views/security_views"
+	openuem_nats "github.com/EigerCode/nats"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
+	"github.com/EigerCode/openuem-console/internal/views/security_views"
 )
 
 func (h *Handler) ListAntivirusStatus(c echo.Context) error {

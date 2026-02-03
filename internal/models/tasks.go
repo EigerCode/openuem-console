@@ -7,12 +7,12 @@ import (
 
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/profile"
-	"github.com/open-uem/ent/site"
-	"github.com/open-uem/ent/task"
-	"github.com/open-uem/ent/tenant"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/profile"
+	"github.com/EigerCode/ent/site"
+	"github.com/EigerCode/ent/task"
+	"github.com/EigerCode/ent/tenant"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 type TaskConfig struct {

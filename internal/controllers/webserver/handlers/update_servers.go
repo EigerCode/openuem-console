@@ -11,14 +11,14 @@ import (
 
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	openuem_ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/release"
-	"github.com/open-uem/ent/server"
-	openuem_nats "github.com/open-uem/nats"
-	model "github.com/open-uem/openuem-console/internal/models/servers"
-	"github.com/open-uem/openuem-console/internal/views/admin_views"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	openuem_ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/release"
+	"github.com/EigerCode/ent/server"
+	openuem_nats "github.com/EigerCode/nats"
+	model "github.com/EigerCode/openuem-console/internal/models/servers"
+	"github.com/EigerCode/openuem-console/internal/views/admin_views"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 func (h *Handler) UpdateServers(c echo.Context) error {

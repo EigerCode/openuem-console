@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/tenant"
-	"github.com/open-uem/ent/user"
-	"github.com/open-uem/ent/usertenant"
+	ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/tenant"
+	"github.com/EigerCode/ent/user"
+	"github.com/EigerCode/ent/usertenant"
 )
 
 // UserTenantRole represents the role a user has within a tenant

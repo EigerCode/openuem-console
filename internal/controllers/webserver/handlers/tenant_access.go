@@ -6,8 +6,8 @@ import (
 
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/openuem-console/internal/models"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	"github.com/EigerCode/openuem-console/internal/models"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 // TenantAccessMiddleware checks if the authenticated user has access to the requested tenant

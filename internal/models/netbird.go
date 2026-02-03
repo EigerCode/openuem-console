@@ -4,12 +4,12 @@ import (
 	"context"
 	"strings"
 
-	"github.com/open-uem/ent"
-	"github.com/open-uem/ent/agent"
-	"github.com/open-uem/ent/netbird"
-	"github.com/open-uem/ent/netbirdsettings"
-	"github.com/open-uem/ent/tenant"
-	"github.com/open-uem/nats"
+	"github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/agent"
+	"github.com/EigerCode/ent/netbird"
+	"github.com/EigerCode/ent/netbirdsettings"
+	"github.com/EigerCode/ent/tenant"
+	"github.com/EigerCode/nats"
 )
 
 func (m *Model) GetNetbirdSettings(tenantID int) (*ent.NetbirdSettings, error) {

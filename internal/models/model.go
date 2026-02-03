@@ -10,14 +10,14 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/agent"
-	"github.com/open-uem/ent/migrate"
-	"github.com/open-uem/ent/orgmetadata"
-	"github.com/open-uem/ent/profile"
-	"github.com/open-uem/ent/site"
-	"github.com/open-uem/ent/tag"
-	"github.com/open-uem/ent/tenant"
+	ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/agent"
+	"github.com/EigerCode/ent/migrate"
+	"github.com/EigerCode/ent/orgmetadata"
+	"github.com/EigerCode/ent/profile"
+	"github.com/EigerCode/ent/site"
+	"github.com/EigerCode/ent/tag"
+	"github.com/EigerCode/ent/tenant"
 )
 
 type Model struct {

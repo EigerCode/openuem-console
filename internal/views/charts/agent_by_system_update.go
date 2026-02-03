@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/open-uem/openuem-console/internal/models"
+	"github.com/EigerCode/openuem-console/internal/models"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/render"

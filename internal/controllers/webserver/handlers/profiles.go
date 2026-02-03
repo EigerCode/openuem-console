@@ -8,12 +8,12 @@ import (
 
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/ent"
-	"github.com/open-uem/ent/task"
-	"github.com/open-uem/nats"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
-	"github.com/open-uem/openuem-console/internal/views/profiles_views"
+	"github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/task"
+	"github.com/EigerCode/nats"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
+	"github.com/EigerCode/openuem-console/internal/views/profiles_views"
 )
 
 func (h *Handler) Profiles(c echo.Context, successMessage string) error {

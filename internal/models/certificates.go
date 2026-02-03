@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	openuem_ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/certificate"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	openuem_ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/certificate"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 func (m *Model) GetCertificateByUID(uid string) (*openuem_ent.Certificate, error) {

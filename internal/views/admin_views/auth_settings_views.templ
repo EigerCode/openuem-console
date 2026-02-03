@@ -3,10 +3,10 @@ package admin_views
 import (
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/ent"
-	"github.com/open-uem/openuem-console/internal/auth"
-	"github.com/open-uem/openuem-console/internal/views/layout"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	"github.com/EigerCode/ent"
+	"github.com/EigerCode/openuem-console/internal/auth"
+	"github.com/EigerCode/openuem-console/internal/views/layout"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 templ AuthenticationSettings(c echo.Context, settings *ent.Authentication, agentsExists, serversExists bool, commonInfo *partials.CommonInfo, successMessage string) {

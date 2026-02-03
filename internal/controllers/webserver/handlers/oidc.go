@@ -21,12 +21,12 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/ent"
-	"github.com/open-uem/ent/tenant"
-	"github.com/open-uem/nats"
-	"github.com/open-uem/openuem-console/internal/auth"
-	"github.com/open-uem/openuem-console/internal/models"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	"github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/tenant"
+	"github.com/EigerCode/nats"
+	"github.com/EigerCode/openuem-console/internal/auth"
+	"github.com/EigerCode/openuem-console/internal/models"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 	"golang.org/x/oauth2"
 )
 

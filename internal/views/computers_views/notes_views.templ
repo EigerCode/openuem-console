@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/ent"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	"github.com/EigerCode/ent"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 templ Notes(c echo.Context, p partials.PaginationAndSort, agent *ent.Agent, markdown, renderedMarkdown string, confirmDelete bool, commonInfo *partials.CommonInfo, netbird, offline bool) {

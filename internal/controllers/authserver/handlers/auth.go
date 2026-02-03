@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/utils"
+	"github.com/EigerCode/utils"
 	"golang.org/x/crypto/ocsp"
 )
 

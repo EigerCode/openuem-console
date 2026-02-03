@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/openuem-console/internal/views/charts"
-	"github.com/open-uem/openuem-console/internal/views/dashboard_views"
-	"github.com/open-uem/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/charts"
+	"github.com/EigerCode/openuem-console/internal/views/dashboard_views"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
 )
 
 func (h *Handler) Dashboard(c echo.Context) error {

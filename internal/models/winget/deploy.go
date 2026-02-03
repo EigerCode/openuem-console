@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/open-uem/nats"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	"github.com/EigerCode/nats"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 func SearchPackages(packageName string, p partials.PaginationAndSort, dbFolder string, f filters.DeployPackageFilter) ([]nats.SoftwarePackage, error) {

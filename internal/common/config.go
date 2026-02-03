@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
-	"github.com/open-uem/utils"
+	"github.com/EigerCode/utils"
 	"gopkg.in/ini.v1"
 )
 

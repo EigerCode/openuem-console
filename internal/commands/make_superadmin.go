@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/open-uem/openuem-console/internal/models"
+	"github.com/EigerCode/openuem-console/internal/models"
 	"github.com/urfave/cli/v2"
 )
 

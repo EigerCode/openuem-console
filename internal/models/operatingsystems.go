@@ -4,17 +4,17 @@ import (
 	"context"
 	"strconv"
 
-	ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/agent"
-	"github.com/open-uem/ent/app"
-	"github.com/open-uem/ent/computer"
-	"github.com/open-uem/ent/operatingsystem"
-	"github.com/open-uem/ent/predicate"
-	"github.com/open-uem/ent/site"
-	"github.com/open-uem/ent/tag"
-	"github.com/open-uem/ent/tenant"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/agent"
+	"github.com/EigerCode/ent/app"
+	"github.com/EigerCode/ent/computer"
+	"github.com/EigerCode/ent/operatingsystem"
+	"github.com/EigerCode/ent/predicate"
+	"github.com/EigerCode/ent/site"
+	"github.com/EigerCode/ent/tag"
+	"github.com/EigerCode/ent/tenant"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 func (m *Model) CountAgentsByOSVersion(c *partials.CommonInfo) ([]Agent, error) {

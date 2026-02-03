@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/enrollmenttoken"
-	"github.com/open-uem/ent/tenant"
+	ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/enrollmenttoken"
+	"github.com/EigerCode/ent/tenant"
 )
 
 func (m *Model) CreateEnrollmentToken(tenantID int, siteID *int, description string, tokenValue string, maxUses int, expiresAt *time.Time) (*ent.EnrollmentToken, error) {

@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/openuem-console/internal/views/printers_views"
+	"github.com/EigerCode/openuem-console/internal/views/printers_views"
 )
 
 func (h *Handler) NetworkPrinters(c echo.Context) error {

@@ -4,9 +4,9 @@ import (
 	"context"
 	"strconv"
 
-	openuem_ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/settings"
-	"github.com/open-uem/ent/tenant"
+	openuem_ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/settings"
+	"github.com/EigerCode/ent/tenant"
 )
 
 type GeneralSettings struct {

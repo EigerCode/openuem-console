@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	openuem_ent "github.com/open-uem/ent"
+	openuem_ent "github.com/EigerCode/ent"
 	"github.com/sethvargo/go-password/password"
 )
 

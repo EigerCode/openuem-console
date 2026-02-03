@@ -11,8 +11,8 @@ import (
 	validator "github.com/go-passwd/validator"
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/openuem-console/internal/views/account_views"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	"github.com/EigerCode/openuem-console/internal/views/account_views"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 	"github.com/pquerna/otp/totp"
 )
 

@@ -4,10 +4,10 @@ import (
 	"context"
 	"sort"
 
-	openuem_ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/agent"
-	"github.com/open-uem/ent/release"
-	openuem_nats "github.com/open-uem/nats"
+	openuem_ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/agent"
+	"github.com/EigerCode/ent/release"
+	openuem_nats "github.com/EigerCode/nats"
 	"golang.org/x/mod/semver"
 )
 

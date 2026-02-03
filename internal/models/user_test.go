@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	openuem_ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/enttest"
-	openuem_nats "github.com/open-uem/nats"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	openuem_ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/enttest"
+	openuem_nats "github.com/EigerCode/nats"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )

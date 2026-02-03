@@ -4,10 +4,10 @@ import (
 	"log"
 
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/openuem-console/internal/models"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
-	"github.com/open-uem/openuem-console/internal/views/software_views"
+	"github.com/EigerCode/openuem-console/internal/models"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
+	"github.com/EigerCode/openuem-console/internal/views/software_views"
 )
 
 func (h *Handler) Software(c echo.Context) error {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/openuem-console/internal/views/login_views"
+	"github.com/EigerCode/openuem-console/internal/views/login_views"
 )
 
 func (h *Handler) Register(e *echo.Echo) {

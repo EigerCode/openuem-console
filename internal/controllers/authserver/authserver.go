@@ -7,11 +7,11 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/openuem-console/internal/controllers/authserver/handlers"
-	"github.com/open-uem/openuem-console/internal/controllers/router"
-	"github.com/open-uem/openuem-console/internal/controllers/sessions"
-	"github.com/open-uem/openuem-console/internal/models"
-	"github.com/open-uem/utils"
+	"github.com/EigerCode/openuem-console/internal/controllers/authserver/handlers"
+	"github.com/EigerCode/openuem-console/internal/controllers/router"
+	"github.com/EigerCode/openuem-console/internal/controllers/sessions"
+	"github.com/EigerCode/openuem-console/internal/models"
+	"github.com/EigerCode/utils"
 )
 
 type AuthServer struct {

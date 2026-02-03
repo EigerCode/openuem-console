@@ -10,8 +10,8 @@ import (
 	"syscall"
 
 	"github.com/go-co-op/gocron/v2"
-	"github.com/open-uem/openuem-console/internal/common"
-	"github.com/open-uem/utils"
+	"github.com/EigerCode/openuem-console/internal/common"
+	"github.com/EigerCode/utils"
 	"github.com/urfave/cli/v2"
 )
 

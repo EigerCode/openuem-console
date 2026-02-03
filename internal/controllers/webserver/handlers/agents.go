@@ -14,12 +14,12 @@ import (
 
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/ent"
-	openuem_nats "github.com/open-uem/nats"
-	"github.com/open-uem/openuem-console/internal/views/agents_views"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
-	"github.com/open-uem/utils"
+	"github.com/EigerCode/ent"
+	openuem_nats "github.com/EigerCode/nats"
+	"github.com/EigerCode/openuem-console/internal/views/agents_views"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
+	"github.com/EigerCode/utils"
 )
 
 func (h *Handler) ListAgents(c echo.Context, successMessage, errMessage string, comesFromDialog bool) error {

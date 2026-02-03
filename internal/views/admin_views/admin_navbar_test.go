@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 	"github.com/stretchr/testify/assert"
 )
 

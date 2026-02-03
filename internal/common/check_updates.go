@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
-	"github.com/open-uem/ent/release"
-	openuem_nats "github.com/open-uem/nats"
-	"github.com/open-uem/utils"
+	"github.com/EigerCode/ent/release"
+	openuem_nats "github.com/EigerCode/nats"
+	"github.com/EigerCode/utils"
 )
 
 func (w *Worker) StartCheckLatestReleasesJob(channel string) error {

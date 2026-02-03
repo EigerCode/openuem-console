@@ -5,13 +5,13 @@ import (
 	"strconv"
 	"time"
 
-	ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/agent"
-	"github.com/open-uem/ent/deployment"
-	"github.com/open-uem/ent/site"
-	"github.com/open-uem/ent/tenant"
-	openuem_nats "github.com/open-uem/nats"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/agent"
+	"github.com/EigerCode/ent/deployment"
+	"github.com/EigerCode/ent/site"
+	"github.com/EigerCode/ent/tenant"
+	openuem_nats "github.com/EigerCode/nats"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 func (m *Model) GetDeploymentsForAgent(agentId string, p partials.PaginationAndSort, c *partials.CommonInfo) ([]*ent.Deployment, error) {

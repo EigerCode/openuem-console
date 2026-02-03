@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/go-co-op/gocron/v2"
-	"github.com/open-uem/openuem-console/internal/common"
+	"github.com/EigerCode/openuem-console/internal/common"
 )
 
 func main() {

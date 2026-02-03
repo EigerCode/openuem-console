@@ -12,9 +12,9 @@ import (
 
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/openuem-console/internal/views/admin_views"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	"github.com/EigerCode/openuem-console/internal/views/admin_views"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 func (h *Handler) ListSites(c echo.Context, successMessage, errMessage string, confirmDelete bool) error {

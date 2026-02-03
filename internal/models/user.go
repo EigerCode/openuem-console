@@ -10,14 +10,14 @@ import (
 	"time"
 
 	"github.com/alexedwards/argon2id"
-	ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/recoverycode"
-	"github.com/open-uem/ent/user"
-	"github.com/open-uem/ent/usertenant"
-	openuem_nats "github.com/open-uem/nats"
-	"github.com/open-uem/openuem-console/internal/views/admin_views"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/recoverycode"
+	"github.com/EigerCode/ent/user"
+	"github.com/EigerCode/ent/usertenant"
+	openuem_nats "github.com/EigerCode/nats"
+	"github.com/EigerCode/openuem-console/internal/views/admin_views"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 func (m *Model) CountAllUsers(f filters.UserFilter, tenantID int) (int, error) {

@@ -3,7 +3,7 @@ package models
 import (
 	"context"
 
-	"github.com/open-uem/ent"
+	"github.com/EigerCode/ent"
 )
 
 // GetBranding retrieves the global branding settings.

@@ -5,13 +5,13 @@ import (
 	"strconv"
 
 	"entgo.io/ent/dialect/sql"
-	ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/agent"
-	"github.com/open-uem/ent/app"
-	"github.com/open-uem/ent/site"
-	"github.com/open-uem/ent/tenant"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/agent"
+	"github.com/EigerCode/ent/app"
+	"github.com/EigerCode/ent/site"
+	"github.com/EigerCode/ent/tenant"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 type App struct {

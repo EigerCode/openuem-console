@@ -7,11 +7,11 @@ import (
 
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/ent"
-	model "github.com/open-uem/openuem-console/internal/models/servers"
-	"github.com/open-uem/openuem-console/internal/views"
-	"github.com/open-uem/openuem-console/internal/views/filters"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	"github.com/EigerCode/ent"
+	model "github.com/EigerCode/openuem-console/internal/models/servers"
+	"github.com/EigerCode/openuem-console/internal/views"
+	"github.com/EigerCode/openuem-console/internal/views/filters"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 func (h *Handler) GetCommonInfo(c echo.Context) (*partials.CommonInfo, error) {

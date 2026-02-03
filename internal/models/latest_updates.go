@@ -4,12 +4,12 @@ import (
 	"context"
 	"strconv"
 
-	ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/agent"
-	"github.com/open-uem/ent/site"
-	"github.com/open-uem/ent/tenant"
-	"github.com/open-uem/ent/update"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/agent"
+	"github.com/EigerCode/ent/site"
+	"github.com/EigerCode/ent/tenant"
+	"github.com/EigerCode/ent/update"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 func (m *Model) CountLatestUpdates(agentId string, c *partials.CommonInfo) (int, error) {

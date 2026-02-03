@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	openuem_ent "github.com/open-uem/ent"
-	"github.com/open-uem/ent/enttest"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	openuem_ent "github.com/EigerCode/ent"
+	"github.com/EigerCode/ent/enttest"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )

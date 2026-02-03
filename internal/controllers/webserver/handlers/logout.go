@@ -7,8 +7,8 @@ import (
 
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/openuem-console/internal/auth"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	"github.com/EigerCode/openuem-console/internal/auth"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 func (h *Handler) Logout(c echo.Context) error {

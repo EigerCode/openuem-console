@@ -6,9 +6,9 @@ import (
 
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/openuem-console/internal/models"
-	"github.com/open-uem/openuem-console/internal/views/admin_views"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	"github.com/EigerCode/openuem-console/internal/models"
+	"github.com/EigerCode/openuem-console/internal/views/admin_views"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 // ListTenantMembers shows the members (users) assigned to a tenant with their roles

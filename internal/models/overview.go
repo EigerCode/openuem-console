@@ -5,11 +5,11 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/open-uem/ent/agent"
-	"github.com/open-uem/ent/metadata"
-	"github.com/open-uem/ent/site"
-	"github.com/open-uem/ent/tenant"
-	"github.com/open-uem/openuem-console/internal/views/partials"
+	"github.com/EigerCode/ent/agent"
+	"github.com/EigerCode/ent/metadata"
+	"github.com/EigerCode/ent/site"
+	"github.com/EigerCode/ent/tenant"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
 func (m *Model) SaveEndpointDescription(agentID string, description string, c *partials.CommonInfo) error {

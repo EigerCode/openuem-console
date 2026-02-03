@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/open-uem/ent/enttest"
+	"github.com/EigerCode/ent/enttest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )

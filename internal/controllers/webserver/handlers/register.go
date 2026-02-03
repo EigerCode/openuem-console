@@ -11,8 +11,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/open-uem/openuem-console/internal/views/partials"
-	"github.com/open-uem/openuem-console/internal/views/register_views"
+	"github.com/EigerCode/openuem-console/internal/views/partials"
+	"github.com/EigerCode/openuem-console/internal/views/register_views"
 )
 
 type RegisterRequest struct {
