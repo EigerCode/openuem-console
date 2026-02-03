@@ -257,22 +257,14 @@ func getBrandingValue(b *ent.Branding, field string, defaultValue string) string
 		if b.PrimaryColor != "" {
 			return b.PrimaryColor
 		}
-	case "secondary_color":
-		if b.SecondaryColor != "" {
-			return b.SecondaryColor
-		}
-	case "accent_color":
-		if b.AccentColor != "" {
-			return b.AccentColor
-		}
 	case "product_name":
 		if b.ProductName != "" {
 			return b.ProductName
 		}
-	case "footer_text":
-		return b.FooterText
 	case "login_welcome_text":
-		return b.LoginWelcomeText
+		if b.LoginWelcomeText != "" {
+			return b.LoginWelcomeText
+		}
 	}
 	return defaultValue
 }
