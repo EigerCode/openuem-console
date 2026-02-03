@@ -365,7 +365,7 @@ templ ShowRecoveryCodes(codes string, url string) {
 			</div>
 			<a
 				class="uk-button uk-button-primary text-white flex gap-2 print:hidden"
-				href={ url }
+				href={ templ.URL(url) }
 				hx-get={ url }
 				hx-push-url="false"
 				hx-target="body"

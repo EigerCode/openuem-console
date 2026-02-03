@@ -1,0 +1,207 @@
+package admin_views
+
+import (
+	"fmt"
+	"github.com/invopop/ctxi18n/i18n"
+	"github.com/labstack/echo/v4"
+	ent "github.com/open-uem/ent"
+	"github.com/open-uem/openuem-console/internal/views/layout"
+	"github.com/open-uem/openuem-console/internal/views/partials"
+	"strconv"
+	"time"
+)
+
+templ EnrollmentTokens(c echo.Context, tokens []*ent.EnrollmentToken, sites []*ent.Site, errMessage string, agentsExists bool, serversExists bool, commonInfo *partials.CommonInfo) {
+	@partials.Header(c, []partials.Breadcrumb{
+		{Title: i18n.T(ctx, "Settings"), Url: fmt.Sprintf("/tenant/%s/admin", commonInfo.TenantID)},
+		{Title: i18n.T(ctx, "enrollment.title"), Url: fmt.Sprintf("/tenant/%s/admin/enrollment", commonInfo.TenantID)},
+	}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		@ConfigNavbar("enrollment", agentsExists, serversExists, commonInfo)
+		<div class="uk-width-1-1">
+			<div class="uk-card uk-card-default">
+				<div class="uk-card-header">
+					<h3 class="uk-card-title">{ i18n.T(ctx, "enrollment.title") }</h3>
+					<p class="uk-margin-small-top uk-text-small uk-text-muted">
+						{ i18n.T(ctx, "enrollment.description") }
+					</p>
+				</div>
+				<div class="uk-card-body flex flex-col gap-4">
+					if errMessage != "" {
+						<div class="uk-alert uk-alert-danger uk-margin-small-bottom">
+							{ errMessage }
+						</div>
+					}
+					<!-- Tokens Table -->
+					if len(tokens) > 0 {
+						<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped">
+							<thead>
+								<tr>
+									<th>{ i18n.T(ctx, "enrollment.description_label") }</th>
+									<th>{ i18n.T(ctx, "enrollment.token") }</th>
+									<th>{ i18n.T(ctx, "enrollment.site_label") }</th>
+									<th>{ i18n.T(ctx, "enrollment.max_uses") }</th>
+									<th>{ i18n.T(ctx, "enrollment.current_uses") }</th>
+									<th>{ i18n.T(ctx, "enrollment.expires_at") }</th>
+									<th>{ i18n.T(ctx, "enrollment.status") }</th>
+									<th></th>
+								</tr>
+							</thead>
+							<tbody>
+								for _, t := range tokens {
+									<tr>
+										<td class="uk-table-shrink">{ t.Description }</td>
+										<td class="uk-table-shrink">
+											<code class="uk-text-small">{ t.Token[:8] }...</code>
+										</td>
+										<td class="uk-table-shrink">
+											if t.Edges.Site != nil {
+												{ t.Edges.Site.Description }
+											} else {
+												<span class="uk-text-muted">{ i18n.T(ctx, "enrollment.site_default") }</span>
+											}
+										</td>
+										<td class="uk-table-shrink">
+											if t.MaxUses == 0 {
+												{ i18n.T(ctx, "enrollment.unlimited") }
+											} else {
+												{ strconv.Itoa(t.MaxUses) }
+											}
+										</td>
+										<td class="uk-table-shrink">{ strconv.Itoa(t.CurrentUses) }</td>
+										<td class="uk-table-shrink">
+											if t.ExpiresAt != nil {
+												{ t.ExpiresAt.Format("2006-01-02") }
+											} else {
+												<span class="uk-text-muted">-</span>
+											}
+										</td>
+										<td class="uk-table-shrink">
+											if t.Active && (t.ExpiresAt == nil || t.ExpiresAt.After(time.Now())) {
+												<span class="uk-label uk-label-success">{ i18n.T(ctx, "enrollment.active") }</span>
+											} else if !t.Active {
+												<span class="uk-label uk-label-warning">{ i18n.T(ctx, "enrollment.inactive") }</span>
+											} else {
+												<span class="uk-label uk-label-danger">{ i18n.T(ctx, "enrollment.expired") }</span>
+											}
+										</td>
+										<td class="uk-table-shrink">
+											<div class="flex gap-1">
+												<!-- Toggle -->
+												<button
+													class={ "uk-button uk-button-small", templ.KV("uk-button-default", t.Active), templ.KV("uk-button-primary", !t.Active) }
+													hx-post={ fmt.Sprintf("/tenant/%s/admin/enrollment/%d/toggle", commonInfo.TenantID, t.ID) }
+													hx-vals={ fmt.Sprintf(`{"active": "%s"}`, boolToString(!t.Active)) }
+													hx-target="#main"
+													hx-swap="outerHTML"
+												>
+													if t.Active {
+														<uk-icon icon="pause" class="h-4 w-4"></uk-icon>
+													} else {
+														<uk-icon icon="play" class="h-4 w-4"></uk-icon>
+													}
+												</button>
+												<!-- Download Linux -->
+												<a
+													class="uk-button uk-button-default uk-button-small"
+													href={ templ.URL(fmt.Sprintf("/tenant/%s/admin/enrollment/%d/script?platform=linux", commonInfo.TenantID, t.ID)) }
+													title={ i18n.T(ctx, "enrollment.download_linux") }
+												>
+													<uk-icon icon="terminal" class="h-4 w-4"></uk-icon>
+												</a>
+												<!-- Download Windows -->
+												<a
+													class="uk-button uk-button-default uk-button-small"
+													href={ templ.URL(fmt.Sprintf("/tenant/%s/admin/enrollment/%d/script?platform=windows", commonInfo.TenantID, t.ID)) }
+													title={ i18n.T(ctx, "enrollment.download_windows") }
+												>
+													<uk-icon icon="monitor" class="h-4 w-4"></uk-icon>
+												</a>
+												<!-- Delete -->
+												<button
+													class="uk-button uk-button-danger uk-button-small"
+													hx-delete={ fmt.Sprintf("/tenant/%s/admin/enrollment/%d", commonInfo.TenantID, t.ID) }
+													hx-target="#main"
+													hx-swap="outerHTML"
+													hx-confirm={ i18n.T(ctx, "enrollment.confirm_delete") }
+												>
+													<uk-icon icon="x" class="h-4 w-4"></uk-icon>
+												</button>
+											</div>
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					} else {
+						<p class="uk-text-muted">{ i18n.T(ctx, "enrollment.no_tokens") }</p>
+					}
+					<!-- Create Token Form -->
+					<div class="uk-card uk-card-default uk-card-body uk-margin-top">
+						<h4>{ i18n.T(ctx, "enrollment.create_token") }</h4>
+						<form
+							class="flex items-end gap-4 flex-wrap"
+							hx-post={ fmt.Sprintf("/tenant/%s/admin/enrollment", commonInfo.TenantID) }
+							hx-target="#main"
+							hx-swap="outerHTML"
+						>
+							<div>
+								<label class="uk-form-label">{ i18n.T(ctx, "enrollment.description_label") }</label>
+								<input
+									type="text"
+									name="description"
+									placeholder={ i18n.T(ctx, "enrollment.description_placeholder") }
+									class="uk-input uk-form-width-medium"
+								/>
+							</div>
+							<div>
+								<label class="uk-form-label">{ i18n.T(ctx, "enrollment.site_label") }</label>
+								<select name="site_id" class="uk-select uk-form-width-small">
+									<option value="">{ i18n.T(ctx, "enrollment.site_default") }</option>
+									for _, s := range sites {
+										<option value={ strconv.Itoa(s.ID) }>{ s.Description }</option>
+									}
+								</select>
+							</div>
+							<div>
+								<label class="uk-form-label">{ i18n.T(ctx, "enrollment.max_uses") }</label>
+								<input
+									type="number"
+									name="max_uses"
+									value="0"
+									min="0"
+									class="uk-input uk-form-width-xsmall"
+								/>
+							</div>
+							<div>
+								<label class="uk-form-label">{ i18n.T(ctx, "enrollment.expires_at") }</label>
+								<input
+									type="date"
+									name="expires_at"
+									class="uk-input uk-form-width-small"
+								/>
+							</div>
+							<button type="submit" class="uk-button uk-button-primary uk-button-small">
+								<uk-icon icon="plus" class="h-4 w-4 mr-1"></uk-icon>
+								{ i18n.T(ctx, "enrollment.create_token") }
+							</button>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+templ EnrollmentTokensIndex(title string, cmp templ.Component, commonInfo *partials.CommonInfo) {
+	@layout.Base("admin", commonInfo) {
+		@cmp
+	}
+}
+
+func boolToString(b bool) string {
+	if b {
+		return "true"
+	}
+	return "false"
+}
