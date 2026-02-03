@@ -26,5 +26,6 @@ func getCommands() []*cli.Command {
 	return []*cli.Command{
 		commands.StartConsole(),
 		commands.StopConsole(),
+		commands.MakeSuperAdmin(),
 	}
 }

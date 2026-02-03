@@ -53,9 +53,16 @@ func (h *Handler) GetCommonInfo(c echo.Context) (*partials.CommonInfo, error) {
 	tenantID := c.Param("tenant")
 	siteID := c.Param("site")
 
-	info.Tenants, err = h.Model.GetTenants()
-	if err != nil {
-		return nil, err
+	// Get username for tenant filtering
+	username := h.SessionManager.Manager.GetString(c.Request().Context(), "uid")
+	if username != "" {
+		// Only show tenants the user has access to
+		userTenants, err := h.Model.GetTenantsForUser(username)
+		if err == nil {
+			info.Tenants = userTenants
+		}
+	} else {
+		info.Tenants = []*ent.Tenant{}
 	}
 
 	if tenantID == "" {
@@ -131,6 +138,24 @@ func (h *Handler) GetCommonInfo(c echo.Context) (*partials.CommonInfo, error) {
 
 	// Load branding settings
 	info.Branding, _ = h.Model.GetOrCreateBranding()
+
+	// Multi-tenancy: Populate additional user/tenant context
+	// username already defined earlier for tenant filtering
+	if username != "" {
+		// Check if user is super admin
+		info.IsSuperAdmin, _ = h.Model.IsSuperAdmin(username)
+
+		// Get user's role in current tenant
+		info.UserRole, _ = h.GetCurrentUserTenantRole(c)
+
+		// Get accessible tenants
+		info.AccessibleTenants, _ = h.GetUserAccessibleTenants(c)
+
+		// Check if current tenant is hoster tenant
+		if tenant != nil {
+			info.CurrentTenantIsHoster, _ = h.Model.IsHosterTenant(tenant.ID)
+		}
+	}
 
 	return &info, nil
 }
