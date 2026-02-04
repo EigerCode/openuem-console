@@ -653,6 +653,7 @@ en:
     created: "Created at"
     description: "These are the users that can access the OpenUEM console"
     email: "Email"
+    username: "Username"
     import: "Import Users"
     modified: "Modified at"
     name: "Name"
@@ -2015,6 +2016,8 @@ en:
     already_member: "This user is already a member of this organization."
     identifier_label: "Username or Email"
     identifier_placeholder: "Enter username or email address"
+    cannot_remove_self: "You cannot remove yourself from this organization."
+    cannot_demote_self: "You cannot change your own role to a lower permission level."
   enrollment:
     title: "Enrollment"
     description: "Create enrollment tokens to securely register agents to this organization."

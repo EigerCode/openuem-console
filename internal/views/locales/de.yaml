@@ -653,6 +653,7 @@ de:
     created: "Erstellt am"
     description: "Dies sind die Benutzer, die auf die OpenUEM-Konsole zugreifen können"
     email: "E-Mail"
+    username: "Benutzername"
     import: "Benutzer importieren"
     modified: "Geändert am"
     name: "Name"
@@ -2015,6 +2016,8 @@ de:
     already_member: "Dieser Benutzer ist bereits Mitglied dieser Organisation."
     identifier_label: "Benutzername oder E-Mail"
     identifier_placeholder: "Benutzername oder E-Mail-Adresse eingeben"
+    cannot_remove_self: "Sie können sich nicht selbst aus dieser Organisation entfernen."
+    cannot_demote_self: "Sie können Ihre eigene Rolle nicht auf eine niedrigere Berechtigungsstufe ändern."
   enrollment:
     title: "Enrollment"
     description: "Erstellen Sie Enrollment-Tokens, um Agents sicher bei dieser Organisation zu registrieren."

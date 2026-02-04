@@ -38,8 +38,10 @@ func (h *Handler) ListTenantMembers(c echo.Context) error {
 		return RenderError(c, partials.ErrorMessage(err.Error(), false))
 	}
 
+	currentUsername := h.SessionManager.Manager.GetString(c.Request().Context(), "uid")
+
 	return RenderView(c, admin_views.TenantMembersIndex(" | Members",
-		admin_views.TenantMembers(c, members, "", "", agentsExists, serversExists, commonInfo),
+		admin_views.TenantMembers(c, members, "", "", agentsExists, serversExists, commonInfo, currentUsername),
 		commonInfo))
 }
 
@@ -99,9 +101,10 @@ func (h *Handler) listTenantMembersWithError(c echo.Context, commonInfo *partial
 	members, _ := h.Model.GetTenantUsersWithRoles(tenantID)
 	agentsExists, _ := h.Model.AgentsExists(commonInfo)
 	serversExists, _ := h.Model.ServersExists()
+	currentUsername := h.SessionManager.Manager.GetString(c.Request().Context(), "uid")
 
 	return RenderView(c, admin_views.TenantMembersIndex(" | Members",
-		admin_views.TenantMembers(c, members, identifier, errMsg, agentsExists, serversExists, commonInfo),
+		admin_views.TenantMembers(c, members, identifier, errMsg, agentsExists, serversExists, commonInfo, currentUsername),
 		commonInfo))
 }
 
@@ -120,6 +123,12 @@ func (h *Handler) RemoveTenantMember(c echo.Context) error {
 	userID := c.Param("uid")
 	if userID == "" {
 		return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "users.user_not_found"), true))
+	}
+
+	// Prevent admin from removing themselves
+	currentUsername := h.SessionManager.Manager.GetString(c.Request().Context(), "uid")
+	if userID == currentUsername {
+		return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "members.cannot_remove_self"), true))
 	}
 
 	err = h.Model.RemoveUserFromTenant(userID, tenantID)
@@ -151,6 +160,12 @@ func (h *Handler) UpdateTenantMemberRole(c echo.Context) error {
 	role := c.FormValue("role")
 	if role != "admin" && role != "operator" && role != "user" {
 		return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "tenants.invalid_role"), true))
+	}
+
+	// Prevent admin from demoting themselves
+	currentUsername := h.SessionManager.Manager.GetString(c.Request().Context(), "uid")
+	if userID == currentUsername && role != "admin" {
+		return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "members.cannot_demote_self"), true))
 	}
 
 	err = h.Model.UpdateUserTenantRole(userID, tenantID, models.UserTenantRole(role))

@@ -9,7 +9,7 @@ import (
 	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
 
-templ TenantMembers(c echo.Context, members []*ent.UserTenant, identifier string, errMessage string, agentsExists bool, serversExists bool, commonInfo *partials.CommonInfo) {
+templ TenantMembers(c echo.Context, members []*ent.UserTenant, identifier string, errMessage string, agentsExists bool, serversExists bool, commonInfo *partials.CommonInfo, currentUsername string) {
 	@partials.Header(c, []partials.Breadcrumb{
 		{Title: i18n.T(ctx, "Settings"), Url: fmt.Sprintf("/tenant/%s/admin", commonInfo.TenantID)},
 		{Title: i18n.T(ctx, "members.title"), Url: fmt.Sprintf("/tenant/%s/admin/members", commonInfo.TenantID)},
@@ -57,23 +57,28 @@ templ TenantMembers(c echo.Context, members []*ent.UserTenant, identifier string
 										</td>
 										<td class="uk-table-shrink">
 											if ut.Edges.User != nil {
-												<form>
-													<select
-														name="role"
-														class="uk-select uk-form-small uk-form-width-small"
-														hx-post={ fmt.Sprintf("/tenant/%s/admin/members/%s/role", commonInfo.TenantID, ut.Edges.User.ID) }
-														hx-target="#main"
-														hx-swap="outerHTML"
-													>
-														<option value="admin" selected?={ ut.Role.String() == "admin" }>{ i18n.T(ctx, "tenants.role_admin") }</option>
-														<option value="operator" selected?={ ut.Role.String() == "operator" }>{ i18n.T(ctx, "tenants.role_operator") }</option>
-														<option value="user" selected?={ ut.Role.String() == "user" }>{ i18n.T(ctx, "tenants.role_user") }</option>
-													</select>
-												</form>
+												if ut.Edges.User.ID == currentUsername {
+													<!-- Current user cannot change their own role -->
+													<span class="uk-badge">{ i18n.T(ctx, "tenants.role_" + ut.Role.String()) }</span>
+												} else {
+													<form>
+														<select
+															name="role"
+															class="uk-select uk-form-small uk-form-width-small"
+															hx-post={ fmt.Sprintf("/tenant/%s/admin/members/%s/role", commonInfo.TenantID, ut.Edges.User.ID) }
+															hx-target="#main"
+															hx-swap="outerHTML"
+														>
+															<option value="admin" selected?={ ut.Role.String() == "admin" }>{ i18n.T(ctx, "tenants.role_admin") }</option>
+															<option value="operator" selected?={ ut.Role.String() == "operator" }>{ i18n.T(ctx, "tenants.role_operator") }</option>
+															<option value="user" selected?={ ut.Role.String() == "user" }>{ i18n.T(ctx, "tenants.role_user") }</option>
+														</select>
+													</form>
+												}
 											}
 										</td>
 										<td class="uk-table-shrink">
-											if ut.Edges.User != nil && len(members) > 1 {
+											if ut.Edges.User != nil && len(members) > 1 && ut.Edges.User.ID != currentUsername {
 												<button
 													class="uk-button uk-button-danger uk-button-small"
 													hx-delete={ fmt.Sprintf("/tenant/%s/admin/members/%s", commonInfo.TenantID, ut.Edges.User.ID) }
