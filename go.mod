@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	entgo.io/ent v0.14.5
-	github.com/EigerCode/ent v0.0.0-20260204200136-a0ce6ae62db4
+	github.com/EigerCode/ent v0.0.0-20260204201821-ec41271a60aa
 	github.com/EigerCode/nats v0.0.0-20260203192215-59b1eb7551d6
 	github.com/EigerCode/utils v0.0.0-20260203190441-952c72a58011
 	github.com/EigerCode/wingetcfg v0.0.0-20251011111407-80e823d91ea5
@@ -41,16 +41,16 @@ require (
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/wneessen/go-mail v0.7.2
 	github.com/xuri/excelize/v2 v2.10.0
-	golang.org/x/crypto v0.43.0
-	golang.org/x/mod v0.29.0
+	golang.org/x/crypto v0.47.0
+	golang.org/x/mod v0.32.0
 	golang.org/x/oauth2 v0.32.0
-	golang.org/x/sys v0.37.0
+	golang.org/x/sys v0.40.0
 	gopkg.in/ini.v1 v1.67.0
 	software.sslmate.com/src/go-pkcs12 v0.6.0
 )
 
 require (
-	ariga.io/atlas v0.37.0 // indirect
+	ariga.io/atlas v1.0.0 // indirect
 	github.com/EigerCode/openuem-ansible-config v0.0.0-20250710075757-9ef6e3390073 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
@@ -65,7 +65,7 @@ require (
 	github.com/f-amaral/go-async v0.3.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
-	github.com/go-openapi/inflect v0.21.3 // indirect
+	github.com/go-openapi/inflect v0.21.5 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
@@ -106,13 +106,13 @@ require (
 	github.com/xuri/efp v0.0.1 // indirect
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
 	github.com/zclconf/go-cty v1.17.0 // indirect
-	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
+	github.com/zclconf/go-cty-yaml v1.2.0 // indirect
 	golang.org/x/image v0.32.0 // indirect
-	golang.org/x/net v0.46.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/text v0.30.0 // indirect
+	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
-	golang.org/x/tools v0.38.0 // indirect
+	golang.org/x/tools v0.41.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

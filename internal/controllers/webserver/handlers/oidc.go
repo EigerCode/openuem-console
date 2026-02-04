@@ -14,7 +14,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 	"time"
 
@@ -22,7 +21,6 @@ import (
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v4"
 	"github.com/EigerCode/ent"
-	"github.com/EigerCode/ent/tenant"
 	"github.com/EigerCode/nats"
 	"github.com/EigerCode/openuem-console/internal/auth"
 	"github.com/EigerCode/openuem-console/internal/models"
@@ -220,16 +218,14 @@ func (h *Handler) OIDCCallback(c echo.Context) error {
 			oidcRoles = data.Roles
 		}
 
-		if settings.OIDCRole != "" {
-			if !slices.Contains(oidcRoles, settings.OIDCRole) {
-				return echo.NewHTTPError(http.StatusUnauthorized, "user has no permission to log in to OpenUEM")
-			}
+		// Check if any of the configured roles are present
+		if !h.userHasAllowedOIDCRole(oidcRoles, settings) {
+			return echo.NewHTTPError(http.StatusUnauthorized, "user has no permission to log in to OpenUEM")
 		}
 	} else {
-		if settings.OIDCRole != "" {
-			if !slices.Contains(u.Groups, settings.OIDCRole) {
-				return echo.NewHTTPError(http.StatusUnauthorized, "user has no permission to log in to OpenUEM")
-			}
+		// Check if any of the configured groups are present
+		if !h.userHasAllowedOIDCRole(u.Groups, settings) {
+			return echo.NewHTTPError(http.StatusUnauthorized, "user has no permission to log in to OpenUEM")
 		}
 	}
 
@@ -474,7 +470,7 @@ func (h *Handler) ManageOIDCSession(c echo.Context, u *ent.User, oidcInfo OIDCTe
 	}
 
 	// Assign tenant based on OIDC org info (every login)
-	if err := h.AssignTenantFromOIDC(u.ID, oidcInfo); err != nil {
+	if err := h.AssignTenantFromOIDC(u.ID, oidcInfo, settings); err != nil {
 		log.Printf("[WARN]: could not assign tenant from OIDC for user %s: %v", u.ID, err)
 	}
 
@@ -671,15 +667,15 @@ func (h *Handler) GetOIDCUserRoles(accessToken string, settings *ent.Authenticat
 // AssignTenantFromOIDC assigns a user to a tenant based on OIDC provider information.
 // Strategy 1: Uses the org ID to find the matching tenant (e.g. Zitadel resource owner ID).
 // Strategy 2: Uses groups in format "openuem:<org>:<role>" (e.g. Authelia).
-func (h *Handler) AssignTenantFromOIDC(userID string, info OIDCTenantInfo) error {
+func (h *Handler) AssignTenantFromOIDC(userID string, info OIDCTenantInfo, settings *ent.Authentication) error {
 	// Strategy 1: Org ID mapping (preferred)
 	if info.OrgID != "" {
-		return h.assignTenantByOrgID(userID, info.OrgID, info.Roles)
+		return h.assignTenantByOrgID(userID, info.OrgID, info.Roles, settings)
 	}
 
 	// Strategy 2: Generic OIDC groups (fallback for Authelia etc.)
 	if len(info.Groups) > 0 {
-		return h.assignTenantByGroups(userID, info.Groups)
+		return h.assignTenantByGroups(userID, info.Groups, settings)
 	}
 
 	// No org ID or groups found - user may be manually assigned to tenants
@@ -687,15 +683,15 @@ func (h *Handler) AssignTenantFromOIDC(userID string, info OIDCTenantInfo) error
 }
 
 // assignTenantByOrgID maps OIDC org ID to a tenant and assigns the user with the correct role
-func (h *Handler) assignTenantByOrgID(userID, orgID string, roles []string) error {
+func (h *Handler) assignTenantByOrgID(userID, orgID string, roles []string, settings *ent.Authentication) error {
 	t, err := h.Model.GetTenantByOIDCOrgID(orgID)
 	if err != nil {
 		log.Printf("[WARN]: no tenant found for OIDC org ID '%s', skipping assignment", orgID)
 		return nil
 	}
 
-	// Determine role from OIDC project roles
-	role := h.resolveOIDCRole(roles, t)
+	// Determine role from OIDC roles using configured role names from settings
+	role := h.resolveOIDCRoleFromSettings(roles, settings)
 
 	// Check if user is already assigned
 	hasAccess, _ := h.Model.UserHasAccessToTenant(userID, t.ID)
@@ -720,33 +716,67 @@ func (h *Handler) assignTenantByOrgID(userID, orgID string, roles []string) erro
 	return nil
 }
 
-// resolveOIDCRole maps OIDC project roles to OpenUEM roles
-// Checks for openuem_admin, openuem_operator, openuem_user in the roles list
-// Falls back to the tenant's oidc_default_role setting
-func (h *Handler) resolveOIDCRole(roles []string, t *ent.Tenant) models.UserTenantRole {
-	for _, r := range roles {
-		switch r {
-		case "openuem_admin":
-			return models.UserTenantRoleAdmin
-		case "openuem_operator":
-			return models.UserTenantRoleOperator
-		case "openuem_user":
-			return models.UserTenantRoleUser
+// userHasAllowedOIDCRole checks if the user has any of the configured OIDC roles/groups
+// Returns true if no roles are configured (allow all), or if user has at least one matching role
+func (h *Handler) userHasAllowedOIDCRole(userRoles []string, settings *ent.Authentication) bool {
+	// If no roles are configured, allow all users
+	if settings.OIDCRoleAdmin == "" && settings.OIDCRoleOperator == "" && settings.OIDCRoleUser == "" {
+		return true
+	}
+
+	// Check if user has any of the configured roles
+	for _, role := range userRoles {
+		if settings.OIDCRoleAdmin != "" && role == settings.OIDCRoleAdmin {
+			return true
+		}
+		if settings.OIDCRoleOperator != "" && role == settings.OIDCRoleOperator {
+			return true
+		}
+		if settings.OIDCRoleUser != "" && role == settings.OIDCRoleUser {
+			return true
 		}
 	}
 
-	// Fallback to tenant default role
-	if t.OidcDefaultRole == tenant.OidcDefaultRoleAdmin {
+	return false
+}
+
+// resolveOIDCRoleFromSettings maps user's OIDC roles to OpenUEM role based on authentication settings
+// Returns the highest privilege role the user has (admin > operator > user)
+func (h *Handler) resolveOIDCRoleFromSettings(userRoles []string, settings *ent.Authentication) models.UserTenantRole {
+	hasAdmin := false
+	hasOperator := false
+	hasUser := false
+
+	for _, role := range userRoles {
+		if settings.OIDCRoleAdmin != "" && role == settings.OIDCRoleAdmin {
+			hasAdmin = true
+		}
+		if settings.OIDCRoleOperator != "" && role == settings.OIDCRoleOperator {
+			hasOperator = true
+		}
+		if settings.OIDCRoleUser != "" && role == settings.OIDCRoleUser {
+			hasUser = true
+		}
+	}
+
+	// Return highest privilege role
+	if hasAdmin {
 		return models.UserTenantRoleAdmin
-	} else if t.OidcDefaultRole == tenant.OidcDefaultRoleOperator {
+	}
+	if hasOperator {
 		return models.UserTenantRoleOperator
 	}
+	if hasUser {
+		return models.UserTenantRoleUser
+	}
+
+	// Default to user role
 	return models.UserTenantRoleUser
 }
 
 // assignTenantByGroups handles generic OIDC group-based tenant assignment (Authelia etc.)
 // Expected group format: openuem:<organization>:<role>
-func (h *Handler) assignTenantByGroups(userID string, groups []string) error {
+func (h *Handler) assignTenantByGroups(userID string, groups []string, settings *ent.Authentication) error {
 	for _, group := range groups {
 		parts := strings.Split(group, ":")
 		if len(parts) != 3 || parts[0] != "openuem" {
@@ -756,16 +786,32 @@ func (h *Handler) assignTenantByGroups(userID string, groups []string) error {
 		orgName := parts[1]
 		roleName := parts[2]
 
+		// Resolve role using configured settings or fallback to standard names
 		var role models.UserTenantRole
-		switch roleName {
-		case "admin":
+		var roleFound bool
+		if settings.OIDCRoleAdmin != "" && roleName == settings.OIDCRoleAdmin {
 			role = models.UserTenantRoleAdmin
-		case "operator":
+			roleFound = true
+		} else if settings.OIDCRoleOperator != "" && roleName == settings.OIDCRoleOperator {
 			role = models.UserTenantRoleOperator
-		case "user":
+			roleFound = true
+		} else if settings.OIDCRoleUser != "" && roleName == settings.OIDCRoleUser {
 			role = models.UserTenantRoleUser
-		default:
-			continue
+			roleFound = true
+		}
+
+		// Fallback to standard role names if no settings match
+		if !roleFound {
+			switch roleName {
+			case "admin":
+				role = models.UserTenantRoleAdmin
+			case "operator":
+				role = models.UserTenantRoleOperator
+			case "user":
+				role = models.UserTenantRoleUser
+			default:
+				continue
+			}
 		}
 
 		t, err := h.Model.GetTenantByName(orgName)
