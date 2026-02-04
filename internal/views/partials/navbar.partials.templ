@@ -94,10 +94,10 @@ templ NavBar(active string, commonInfo *CommonInfo) {
 		</div>
 		<div class="flex flex-col gap-4">
 			// Settings icon - visible for:
-			// - Super admins (always)
+			// - Main tenant admins (always)
 			// - Users on global config (TenantID == "-1" or empty) - they must be authorized to be here
 			// - Tenant admins and operators
-			if commonInfo.IsSuperAdmin || commonInfo.TenantID == "-1" || commonInfo.TenantID == "" || commonInfo.UserRole == "admin" || commonInfo.UserRole == "operator" {
+			if commonInfo.IsMainTenantAdmin || commonInfo.TenantID == "-1" || commonInfo.TenantID == "" || commonInfo.UserRole == "admin" || commonInfo.UserRole == "operator" {
 				<a
 					if commonInfo.TenantID != "" && commonInfo.TenantID != "-1" {
 						href={ templ.URL(fmt.Sprintf("/tenant/%s/admin/tags", commonInfo.TenantID)) }

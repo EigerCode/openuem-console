@@ -120,12 +120,12 @@ func (h *Handler) Dashboard(c echo.Context) error {
 	}
 
 	if tenantID == -1 {
-		// Global admin view - use hoster tenant
-		hosterTenant, err := h.Model.GetHosterTenant()
+		// Global admin view - use main tenant
+		mainTenant, err := h.Model.GetMainTenant()
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
-		tenantID = hosterTenant.ID
+		tenantID = mainTenant.ID
 	}
 
 	data.NOpenUEMUsers, err = h.Model.CountAllUsers(filters.UserFilter{}, tenantID)

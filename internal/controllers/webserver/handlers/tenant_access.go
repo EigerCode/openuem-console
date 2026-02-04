@@ -83,9 +83,9 @@ func (h *Handler) TenantAdminMiddleware(next echo.HandlerFunc) echo.HandlerFunc 
 	}
 }
 
-// SuperAdminMiddleware checks if the user is an admin in the hoster tenant (for global settings)
-// This replaces the old SuperAdmin concept - now only admins of the hoster tenant can access global settings
-func (h *Handler) SuperAdminMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+// MainTenantAdminMiddleware checks if the user is an admin in the main tenant (for global settings)
+// The main tenant is simply the tenant with the lowest ID
+func (h *Handler) MainTenantAdminMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// Get user ID from session
 		username := h.SessionManager.Manager.GetString(c.Request().Context(), "uid")
@@ -93,20 +93,20 @@ func (h *Handler) SuperAdminMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			return h.Login(c)
 		}
 
-		// Get hoster tenant
-		hosterTenant, err := h.Model.GetHosterTenant()
+		// Get main tenant (lowest ID)
+		mainTenant, err := h.Model.GetMainTenant()
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 
-		// Check if user is admin in the hoster tenant
-		isHosterAdmin, err := h.Model.IsUserTenantAdmin(username, hosterTenant.ID)
+		// Check if user is admin in the main tenant
+		isMainAdmin, err := h.Model.IsUserTenantAdmin(username, mainTenant.ID)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 
-		if !isHosterAdmin {
-			return echo.NewHTTPError(http.StatusForbidden, i18n.T(c.Request().Context(), "tenants.hoster_admin_required"))
+		if !isMainAdmin {
+			return echo.NewHTTPError(http.StatusForbidden, i18n.T(c.Request().Context(), "tenants.main_admin_required"))
 		}
 
 		return next(c)
@@ -185,6 +185,13 @@ func (h *Handler) GetUserAccessibleTenants(c echo.Context) ([]*partials.TenantIn
 		return nil, err
 	}
 
+	// Get the main tenant to check which one it is
+	mainTenant, _ := h.Model.GetMainTenant()
+	mainTenantID := 0
+	if mainTenant != nil {
+		mainTenantID = mainTenant.ID
+	}
+
 	result := make([]*partials.TenantInfo, 0, len(tenants))
 	for _, t := range tenants {
 		role, _ := h.Model.GetUserRoleInTenant(username, t.ID)
@@ -192,7 +199,7 @@ func (h *Handler) GetUserAccessibleTenants(c echo.Context) ([]*partials.TenantIn
 			ID:          t.ID,
 			Description: t.Description,
 			IsDefault:   t.IsDefault,
-			IsHoster:    t.IsHosterTenant,
+			IsMain:      t.ID == mainTenantID,
 			UserRole:    string(role),
 		})
 	}

@@ -24,8 +24,8 @@ type TenantInfo struct {
 	ID          int
 	Description string
 	IsDefault   bool
-	IsHoster    bool
-	UserRole    string // "admin", "user", or "super_admin"
+	IsMain      bool   // Is this the main tenant (lowest ID)
+	UserRole    string // "admin", "operator", or "user"
 }
 
 type CommonInfo struct {
@@ -47,10 +47,10 @@ type CommonInfo struct {
 	IsDocker              bool
 	Branding              *ent.Branding
 	// Multi-tenancy fields
-	IsSuperAdmin          bool          // Is the current user a super admin (hoster-level access)
-	UserRole              string        // Current user's role in current tenant ("admin", "user", "super_admin")
+	IsMainTenantAdmin     bool          // Is the current user an admin in the main tenant
+	UserRole              string        // Current user's role in current tenant ("admin", "operator", "user")
 	AccessibleTenants     []*TenantInfo // Tenants the user has access to
-	CurrentTenantIsHoster bool          // Is the current tenant the hoster tenant
+	CurrentTenantIsMain   bool          // Is the current tenant the main tenant
 }
 
 // getProductName returns the custom product name or "OpenUEM" as default

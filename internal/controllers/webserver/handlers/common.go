@@ -142,8 +142,8 @@ func (h *Handler) GetCommonInfo(c echo.Context) (*partials.CommonInfo, error) {
 	// Multi-tenancy: Populate additional user/tenant context
 	// username already defined earlier for tenant filtering
 	if username != "" {
-		// Check if user is super admin
-		info.IsSuperAdmin, _ = h.Model.IsSuperAdmin(username)
+		// Check if user is admin in main tenant
+		info.IsMainTenantAdmin, _ = h.Model.IsMainTenantAdmin(username)
 
 		// Get user's role in current tenant
 		info.UserRole, _ = h.GetCurrentUserTenantRole(c)
@@ -151,9 +151,9 @@ func (h *Handler) GetCommonInfo(c echo.Context) (*partials.CommonInfo, error) {
 		// Get accessible tenants
 		info.AccessibleTenants, _ = h.GetUserAccessibleTenants(c)
 
-		// Check if current tenant is hoster tenant
+		// Check if current tenant is main tenant
 		if tenant != nil {
-			info.CurrentTenantIsHoster, _ = h.Model.IsHosterTenant(tenant.ID)
+			info.CurrentTenantIsMain, _ = h.Model.IsMainTenant(tenant.ID)
 		}
 	}
 

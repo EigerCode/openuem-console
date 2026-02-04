@@ -202,11 +202,11 @@ func (m *Model) GetTenantUsersWithRoles(tenantID int) ([]*ent.UserTenant, error)
 		All(context.Background())
 }
 
-// GetHosterTenant returns the hoster/provider tenant
-func (m *Model) GetHosterTenant() (*ent.Tenant, error) {
+// GetMainTenant returns the main tenant (the one with the lowest ID)
+func (m *Model) GetMainTenant() (*ent.Tenant, error) {
 	return m.Client.Tenant.Query().
-		Where(tenant.IsHosterTenant(true)).
-		Only(context.Background())
+		Order(ent.Asc(tenant.FieldID)).
+		First(context.Background())
 }
 
 // GetTenantsWhereUserIsAdmin returns all tenants where the user has admin role
@@ -231,86 +231,32 @@ func (m *Model) GetTenantsWhereUserIsAdmin(userID string) ([]*ent.Tenant, error)
 	return tenants, nil
 }
 
-// IsHosterTenant checks if a tenant is the hoster tenant
-func (m *Model) IsHosterTenant(tenantID int) (bool, error) {
-	t, err := m.Client.Tenant.Query().Where(tenant.ID(tenantID)).Only(context.Background())
+// IsMainTenant checks if a tenant is the main tenant (lowest ID)
+func (m *Model) IsMainTenant(tenantID int) (bool, error) {
+	mainTenant, err := m.GetMainTenant()
 	if err != nil {
 		return false, err
 	}
-	return t.IsHosterTenant, nil
+	return mainTenant.ID == tenantID, nil
 }
 
-// SetHosterTenant sets a tenant as the hoster tenant (only one can exist)
-func (m *Model) SetHosterTenant(tenantID int) error {
-	// Remove hoster status from all tenants
-	err := m.Client.Tenant.Update().
-		SetIsHosterTenant(false).
-		Exec(context.Background())
+// IsMainTenantAdmin checks if a user is an admin in the main tenant
+func (m *Model) IsMainTenantAdmin(userID string) (bool, error) {
+	mainTenant, err := m.GetMainTenant()
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	// Set the new hoster tenant
-	return m.Client.Tenant.Update().
-		Where(tenant.ID(tenantID)).
-		SetIsHosterTenant(true).
-		Exec(context.Background())
-}
-
-// IsSuperAdmin checks if a user is a super admin (admin in the hoster tenant)
-func (m *Model) IsSuperAdmin(userID string) (bool, error) {
-	// Find the hoster tenant
-	hosterTenant, err := m.Client.Tenant.Query().
-		Where(tenant.IsHosterTenant(true)).
-		Only(context.Background())
+	role, err := m.GetUserRoleInTenant(userID, mainTenant.ID)
 	if err != nil {
-		// No hoster tenant exists - fall back to legacy is_super_admin field
-		u, err := m.Client.User.Query().Where(user.ID(userID)).Only(context.Background())
-		if err != nil {
-			return false, err
-		}
-		return u.IsSuperAdmin, nil
-	}
-
-	// Check if user is admin in the hoster tenant
-	role, err := m.GetUserRoleInTenant(userID, hosterTenant.ID)
-	if err != nil {
-		return false, nil // User not assigned to hoster tenant
+		return false, nil // User not assigned to main tenant
 	}
 	return role == UserTenantRoleAdmin, nil
-}
-
-// SetSuperAdmin sets or removes super admin status for a user
-func (m *Model) SetSuperAdmin(userID string, isSuperAdmin bool) error {
-	return m.Client.User.Update().
-		Where(user.ID(userID)).
-		SetIsSuperAdmin(isSuperAdmin).
-		Exec(context.Background())
 }
 
 // GetTenantsForUser returns all tenants the user is explicitly assigned to
 func (m *Model) GetTenantsForUser(userID string) ([]*ent.Tenant, error) {
 	return m.GetUserTenants(userID)
-}
-
-// EnsureHosterTenantExists ensures the hoster tenant exists (called during setup)
-func (m *Model) EnsureHosterTenantExists() error {
-	exists, err := m.Client.Tenant.Query().
-		Where(tenant.IsHosterTenant(true)).
-		Exist(context.Background())
-	if err != nil {
-		return err
-	}
-
-	if !exists {
-		// Set the default tenant as hoster tenant
-		defaultTenant, err := m.GetDefaultTenant()
-		if err != nil {
-			return err
-		}
-		return m.SetHosterTenant(defaultTenant.ID)
-	}
-	return nil
 }
 
 // GetUsersNotInTenant returns all users that are NOT assigned to the given tenant

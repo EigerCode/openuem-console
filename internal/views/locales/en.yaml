@@ -1481,12 +1481,7 @@ en:
     cannot_remove_last_tenant: "Cannot remove user from their last organization. Users must belong to at least one organization."
     no_access: "You do not have access to this organization"
     admin_required: "You must be an admin to perform this action"
-    super_admin_required: "You must be a super admin to perform this action"
-    super_admin_hoster_only: "Super admins can only access the hoster organization"
-    make_super_admin: "Make Super Admin"
-    remove_super_admin: "Remove Super Admin"
-    super_admin_notice: "This user is a super admin and has access to global hoster settings. Super admins do not need tenant assignments."
-    cannot_demote_self: "You cannot remove super admin status from yourself"
+    main_admin_required: "You must be an admin of the main organization to access global settings"
     assign: "Assign"
     # OIDC Settings
     oidc_settings: "OIDC Settings"
