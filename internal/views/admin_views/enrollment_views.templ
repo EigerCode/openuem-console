@@ -17,16 +17,19 @@ templ EnrollmentTokens(c echo.Context, tokens []*ent.EnrollmentToken, sites []*e
 		{Title: i18n.T(ctx, "enrollment.title"), Url: fmt.Sprintf("/tenant/%s/admin/enrollment", commonInfo.TenantID)},
 	}, commonInfo)
 	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-		@ConfigNavbar("enrollment", agentsExists, serversExists, commonInfo)
-		<div class="uk-width-1-1">
-			<div class="uk-card uk-card-default">
-				<div class="uk-card-header">
-					<h3 class="uk-card-title">{ i18n.T(ctx, "enrollment.title") }</h3>
-					<p class="uk-margin-small-top uk-text-small uk-text-muted">
-						{ i18n.T(ctx, "enrollment.description") }
-					</p>
-				</div>
-				<div class="uk-card-body flex flex-col gap-4">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@ConfigNavbar("enrollment", agentsExists, serversExists, commonInfo)
+				<div id="error" class="hidden"></div>
+				<div id="success" class="hidden"></div>
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "enrollment.title") }</h3>
+						<p class="uk-margin-small-top uk-text-small uk-text-muted">
+							{ i18n.T(ctx, "enrollment.description") }
+						</p>
+					</div>
+					<div class="uk-card-body flex flex-col gap-4">
 					if errMessage != "" {
 						<div class="uk-alert uk-alert-danger uk-margin-small-bottom">
 							{ errMessage }
@@ -190,6 +193,7 @@ templ EnrollmentTokens(c echo.Context, tokens []*ent.EnrollmentToken, sites []*e
 				</div>
 			</div>
 		</div>
+	</div>
 	</main>
 }
 

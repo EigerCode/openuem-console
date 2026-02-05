@@ -15,16 +15,19 @@ templ TenantMembers(c echo.Context, members []*ent.UserTenant, identifier string
 		{Title: i18n.T(ctx, "members.title"), Url: fmt.Sprintf("/tenant/%s/admin/members", commonInfo.TenantID)},
 	}, commonInfo)
 	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-		@ConfigNavbar("members", agentsExists, serversExists, commonInfo)
-		<div class="uk-width-1-1">
-			<div class="uk-card uk-card-default">
-				<div class="uk-card-header">
-					<h3 class="uk-card-title">{ i18n.T(ctx, "members.title") }</h3>
-					<p class="uk-margin-small-top uk-text-small uk-text-muted">
-						{ i18n.T(ctx, "members.description") }
-					</p>
-				</div>
-				<div class="uk-card-body flex flex-col gap-4">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@ConfigNavbar("members", agentsExists, serversExists, commonInfo)
+				<div id="error" class="hidden"></div>
+				<div id="success" class="hidden"></div>
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "members.title") }</h3>
+						<p class="uk-margin-small-top uk-text-small uk-text-muted">
+							{ i18n.T(ctx, "members.description") }
+						</p>
+					</div>
+					<div class="uk-card-body flex flex-col gap-4">
 					<!-- Current Members Table -->
 					if len(members) > 0 {
 						<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped">
@@ -139,7 +142,8 @@ templ TenantMembers(c echo.Context, members []*ent.UserTenant, identifier string
 				</div>
 			</div>
 		</div>
-	</main>
+	</div>
+</main>
 }
 
 templ TenantMembersIndex(title string, cmp templ.Component, commonInfo *partials.CommonInfo) {
