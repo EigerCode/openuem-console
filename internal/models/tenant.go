@@ -9,6 +9,7 @@ import (
 	"github.com/EigerCode/ent/agent"
 	"github.com/EigerCode/ent/site"
 	"github.com/EigerCode/ent/tenant"
+	"github.com/EigerCode/ent/usertenant"
 	"github.com/EigerCode/openuem-console/internal/views/filters"
 	"github.com/EigerCode/openuem-console/internal/views/partials"
 )
@@ -141,7 +142,13 @@ func (m *Model) AddTenant(name string, isDefault bool, siteName string) error {
 }
 
 func (m *Model) DeleteTenant(tenantID int) error {
-	_, err := m.Client.Tenant.Delete().Where(tenant.ID(tenantID)).Exec(context.Background())
+	// Delete user-tenant associations first (no cascade configured on this edge)
+	_, err := m.Client.UserTenant.Delete().Where(usertenant.TenantID(tenantID)).Exec(context.Background())
+	if err != nil {
+		return fmt.Errorf("could not delete user-tenant associations: %w", err)
+	}
+
+	_, err = m.Client.Tenant.Delete().Where(tenant.ID(tenantID)).Exec(context.Background())
 	return err
 }
 
