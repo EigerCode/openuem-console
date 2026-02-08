@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -189,7 +188,7 @@ func (h *Handler) DownloadConfigZIP(c echo.Context) error {
 		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
-	externalNATS := deriveExternalNATSURL(h.NATSServers, h.Domain)
+	externalNATS := agentNATSURL(h.NATSServers)
 	iniContent := generateConfigINI(externalNATS, token.Token)
 
 	zipData, err := h.buildConfigZIP(iniContent)
@@ -233,7 +232,7 @@ func (h *Handler) PublicDownloadConfig(c echo.Context) error {
 		platform = "linux"
 	}
 
-	externalNATS := deriveExternalNATSURL(h.NATSServers, h.Domain)
+	externalNATS := agentNATSURL(h.NATSServers)
 	iniContent := generatePlatformConfigINI(platform, externalNATS, token.Token)
 
 	zipData, err := h.buildConfigZIP(iniContent)
@@ -470,21 +469,24 @@ func generateConfigINI(natsServers, token string) string {
 	return sb.String()
 }
 
-// deriveExternalNATSURL constructs the external NATS URL using the console's
-// Domain and the port from the internal NATSServers URL.
-// e.g. internal "tls://nats:4433" + domain "example.com" → "tls://example.com:4433"
-func deriveExternalNATSURL(internalNATS, domain string) string {
-	parsed, err := url.Parse(internalNATS)
-	if err != nil || domain == "" {
-		return internalNATS
+// agentNATSURL returns the external NATS URL for agent configs.
+// It combines NATS_SERVER (external host) and NATS_PORT (external port),
+// falling back to the internal NATS_SERVERS value.
+func agentNATSURL(fallback string) string {
+	server := os.Getenv("NATS_SERVER")
+	port := os.Getenv("NATS_PORT")
+
+	if server == "" {
+		return fallback
 	}
 
-	port := parsed.Port()
-	if port == "" {
-		port = "4433"
-	}
+	// Strip scheme if present, we'll add tls:// ourselves
+	host := strings.TrimPrefix(strings.TrimPrefix(server, "tls://"), "nats://")
 
-	return fmt.Sprintf("%s://%s:%s", parsed.Scheme, domain, port)
+	if port != "" {
+		return "tls://" + host + ":" + port
+	}
+	return "tls://" + host
 }
 
 func (h *Handler) listEnrollmentTokensWithError(c echo.Context, commonInfo *partials.CommonInfo, errMsg string) error {
