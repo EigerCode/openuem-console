@@ -131,6 +131,53 @@ func (h *Handler) ToggleEnrollmentToken(c echo.Context) error {
 	return h.ListEnrollmentTokens(c)
 }
 
+// buildConfigZIP creates an in-memory ZIP with openuem.ini and all certificates.
+func (h *Handler) buildConfigZIP(iniContent string) ([]byte, error) {
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+
+	// Add openuem.ini
+	fw, err := zw.Create("openuem.ini")
+	if err != nil {
+		return nil, fmt.Errorf("could not create ZIP entry: %w", err)
+	}
+	if _, err := fw.Write([]byte(iniContent)); err != nil {
+		return nil, fmt.Errorf("could not write config: %w", err)
+	}
+
+	// Add certificate files
+	certFiles := map[string]string{
+		"certificates/ca.cer":    h.CACertPath,
+		"certificates/agent.cer": h.AgentCertPath,
+		"certificates/agent.key": h.AgentKeyPath,
+		"certificates/sftp.cer":  h.SFTPCertPath,
+	}
+
+	for zipPath, filePath := range certFiles {
+		if filePath == "" {
+			continue
+		}
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			log.Printf("[WARN]: could not read %s: %v", filePath, err)
+			continue
+		}
+		fw, err := zw.Create(zipPath)
+		if err != nil {
+			return nil, fmt.Errorf("could not create ZIP entry %s: %w", zipPath, err)
+		}
+		if _, err := fw.Write(data); err != nil {
+			return nil, fmt.Errorf("could not write %s: %w", zipPath, err)
+		}
+	}
+
+	if err := zw.Close(); err != nil {
+		return nil, fmt.Errorf("could not finalize ZIP: %w", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
 func (h *Handler) DownloadConfigZIP(c echo.Context) error {
 	tokenID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -142,47 +189,18 @@ func (h *Handler) DownloadConfigZIP(c echo.Context) error {
 		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
-	// Read CA certificate
-	caCertData, err := os.ReadFile(h.CACertPath)
-	if err != nil {
-		log.Printf("[ERROR]: could not read CA certificate: %v", err)
-		return RenderError(c, partials.ErrorMessage("Could not read CA certificate", true))
-	}
-
-	// Derive external NATS URL from Domain + port from internal NATSServers
 	externalNATS := deriveExternalNATSURL(h.NATSServers, h.Domain)
-
 	iniContent := generateConfigINI(externalNATS, token.Token)
 
-	// Create ZIP in memory
-	var buf bytes.Buffer
-	zw := zip.NewWriter(&buf)
-
-	// Add openuem.ini
-	fw, err := zw.Create("openuem.ini")
+	zipData, err := h.buildConfigZIP(iniContent)
 	if err != nil {
+		log.Printf("[ERROR]: could not build config ZIP: %v", err)
 		return RenderError(c, partials.ErrorMessage("Could not create ZIP file", true))
-	}
-	if _, err := fw.Write([]byte(iniContent)); err != nil {
-		return RenderError(c, partials.ErrorMessage("Could not write config to ZIP", true))
-	}
-
-	// Add certificates/ca.cer
-	fw, err = zw.Create("certificates/ca.cer")
-	if err != nil {
-		return RenderError(c, partials.ErrorMessage("Could not create ZIP file", true))
-	}
-	if _, err := fw.Write(caCertData); err != nil {
-		return RenderError(c, partials.ErrorMessage("Could not write certificate to ZIP", true))
-	}
-
-	if err := zw.Close(); err != nil {
-		return RenderError(c, partials.ErrorMessage("Could not finalize ZIP file", true))
 	}
 
 	filename := fmt.Sprintf("altiview-config-%s.zip", token.Token[:8])
 	c.Response().Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
-	return c.Blob(200, "application/zip", buf.Bytes())
+	return c.Blob(200, "application/zip", zipData)
 }
 
 // PublicDownloadConfig serves config ZIP without session auth.
@@ -215,40 +233,21 @@ func (h *Handler) PublicDownloadConfig(c echo.Context) error {
 		platform = "linux"
 	}
 
-	caCertData, err := os.ReadFile(h.CACertPath)
-	if err != nil {
-		log.Printf("[ERROR]: could not read CA certificate: %v", err)
-		return c.String(http.StatusInternalServerError, "could not read CA certificate")
-	}
-
 	externalNATS := deriveExternalNATSURL(h.NATSServers, h.Domain)
 	iniContent := generatePlatformConfigINI(platform, externalNATS, token.Token)
 
-	var buf bytes.Buffer
-	zw := zip.NewWriter(&buf)
-
-	fw, err := zw.Create("openuem.ini")
+	zipData, err := h.buildConfigZIP(iniContent)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, "could not create ZIP")
-	}
-	if _, err := fw.Write([]byte(iniContent)); err != nil {
-		return c.String(http.StatusInternalServerError, "could not write config")
+		log.Printf("[ERROR]: could not build config ZIP: %v", err)
+		return c.String(http.StatusInternalServerError, "could not create config package")
 	}
 
-	fw, err = zw.Create("certificates/ca.cer")
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "could not create ZIP")
-	}
-	if _, err := fw.Write(caCertData); err != nil {
-		return c.String(http.StatusInternalServerError, "could not write certificate")
-	}
-
-	if err := zw.Close(); err != nil {
-		return c.String(http.StatusInternalServerError, "could not finalize ZIP")
+	if err := h.Model.IncrementEnrollmentTokenUses(tokenValue); err != nil {
+		log.Printf("[WARN]: could not increment token usage count: %v", err)
 	}
 
 	c.Response().Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="openuem-config-%s.zip"`, tokenValue[:8]))
-	return c.Blob(http.StatusOK, "application/zip", buf.Bytes())
+	return c.Blob(http.StatusOK, "application/zip", zipData)
 }
 
 func (h *Handler) GetInstallCommand(c echo.Context) error {
@@ -269,7 +268,6 @@ func (h *Handler) GetInstallCommand(c echo.Context) error {
 		return RenderError(c, partials.ErrorMessage(err.Error(), true))
 	}
 
-	// Build console base URL from request
 	consoleURL := fmt.Sprintf("https://%s", c.Request().Host)
 
 	var command string
@@ -277,44 +275,147 @@ func (h *Handler) GetInstallCommand(c echo.Context) error {
 
 	switch platform {
 	case "linux":
-		command = generateLinuxOneLiner(consoleURL, token.Token)
+		command = fmt.Sprintf(`curl -fsSL "%s/api/enroll/%s/install?platform=linux" | sudo bash`, consoleURL, token.Token)
 		platformLabel = "Linux"
 	case "macos-amd64":
-		command = generateMacOSOneLiner(consoleURL, token.Token, "amd64")
+		command = fmt.Sprintf(`curl -fsSL "%s/api/enroll/%s/install?platform=macos-amd64" | sudo bash`, consoleURL, token.Token)
 		platformLabel = "macOS Intel"
 	case "macos-arm64":
-		command = generateMacOSOneLiner(consoleURL, token.Token, "arm64")
+		command = fmt.Sprintf(`curl -fsSL "%s/api/enroll/%s/install?platform=macos-arm64" | sudo bash`, consoleURL, token.Token)
 		platformLabel = "macOS ARM"
 	case "windows":
-		command = generateWindowsOneLiner(consoleURL, token.Token)
+		command = fmt.Sprintf(`irm "%s/api/enroll/%s/install?platform=windows" | iex`, consoleURL, token.Token)
 		platformLabel = "Windows"
 	}
 
 	return RenderView(c, admin_views.InstallCommand(command, platformLabel))
 }
 
-func generateLinuxOneLiner(consoleURL, token string) string {
-	return fmt.Sprintf(
-		`sudo bash -c 'curl -fsSL "%s/api/enroll/%s/config?platform=linux" -o /tmp/c.zip && unzip -o /tmp/c.zip -d /etc/openuem-agent/ && curl -fsSL "%s/altiview-agent-linux-amd64.deb" -o /tmp/a.deb && dpkg -i /tmp/a.deb && rm /tmp/c.zip /tmp/a.deb'`,
-		consoleURL, token, agentReleaseBaseURL,
-	)
-}
+// PublicInstallScript serves a platform-specific install script.
+// The enrollment token value in the URL acts as authentication.
+func (h *Handler) PublicInstallScript(c echo.Context) error {
+	tokenValue := c.Param("token")
+	if tokenValue == "" {
+		return c.String(http.StatusBadRequest, "missing token")
+	}
 
-func generateMacOSOneLiner(consoleURL, token, arch string) string {
-	return fmt.Sprintf(
-		`sudo bash -c 'curl -fsSL "%s/api/enroll/%s/config?platform=macos" -o /tmp/c.zip && unzip -o /tmp/c.zip -d /Library/OpenUEMAgent/etc/openuem-agent/ && curl -fsSL "%s/altiview-agent-darwin-%s.pkg" -o /tmp/a.pkg && installer -pkg /tmp/a.pkg -target / && rm /tmp/c.zip /tmp/a.pkg'`,
-		consoleURL, token, agentReleaseBaseURL, arch,
-	)
-}
+	token, err := h.Model.GetEnrollmentTokenByValue(tokenValue)
+	if err != nil {
+		return c.String(http.StatusNotFound, "invalid token")
+	}
 
-func generateWindowsOneLiner(consoleURL, token string) string {
-	return fmt.Sprintf(
-		`$d="$env:ProgramFiles\EigerCode\AltiviewAgent"; Invoke-WebRequest '%s/api/enroll/%s/config?platform=windows' -OutFile "$env:TEMP\c.zip"; Expand-Archive "$env:TEMP\c.zip" $d -Force; Invoke-WebRequest '%s/altiview-agent-windows-amd64.msi' -OutFile "$env:TEMP\a.msi"; Start-Process msiexec "/i `+"`\""+`$env:TEMP\a.msi`+"`\""+` /qn" -Wait; Remove-Item "$env:TEMP\c.zip","$env:TEMP\a.msi"`,
-		consoleURL, token, agentReleaseBaseURL,
-	)
+	if !token.Active {
+		return c.String(http.StatusForbidden, "token is inactive")
+	}
+	if token.ExpiresAt != nil && token.ExpiresAt.Before(time.Now()) {
+		return c.String(http.StatusForbidden, "token has expired")
+	}
+	if token.MaxUses > 0 && token.CurrentUses >= token.MaxUses {
+		return c.String(http.StatusForbidden, "token usage limit reached")
+	}
+
+	platform := c.QueryParam("platform")
+	switch platform {
+	case "linux", "macos-amd64", "macos-arm64", "windows":
+	default:
+		platform = "linux"
+	}
+
+	consoleURL := fmt.Sprintf("https://%s", c.Request().Host)
+
+	var script string
+	var contentType string
+
+	switch platform {
+	case "linux":
+		script = generateLinuxScript(consoleURL, tokenValue)
+		contentType = "text/x-shellscript"
+	case "macos-amd64":
+		script = generateMacOSScript(consoleURL, tokenValue, "amd64")
+		contentType = "text/x-shellscript"
+	case "macos-arm64":
+		script = generateMacOSScript(consoleURL, tokenValue, "arm64")
+		contentType = "text/x-shellscript"
+	case "windows":
+		script = generateWindowsScript(consoleURL, tokenValue)
+		contentType = "text/plain"
+	}
+
+	return c.Blob(http.StatusOK, contentType, []byte(script))
 }
 
 const agentReleaseBaseURL = "https://github.com/EigerCode/openuem-agent/releases/latest/download"
+
+func generateLinuxScript(consoleURL, token string) string {
+	return fmt.Sprintf(`#!/bin/bash
+set -e
+
+CONFIG_DIR="/etc/openuem-agent"
+RELEASE_URL="%s"
+
+echo "Installing OpenUEM Agent..."
+
+# Download and extract config + certificates
+mkdir -p "$CONFIG_DIR"
+curl -fsSL "%s/api/enroll/%s/config?platform=linux" -o /tmp/openuem-config.zip
+unzip -o /tmp/openuem-config.zip -d "$CONFIG_DIR"
+rm /tmp/openuem-config.zip
+
+# Download and install agent
+curl -fsSL "$RELEASE_URL/altiview-agent-linux-amd64.deb" -o /tmp/openuem-agent.deb
+dpkg -i /tmp/openuem-agent.deb
+rm /tmp/openuem-agent.deb
+
+echo "OpenUEM Agent installed successfully."
+`, agentReleaseBaseURL, consoleURL, token)
+}
+
+func generateMacOSScript(consoleURL, token, arch string) string {
+	return fmt.Sprintf(`#!/bin/bash
+set -e
+
+CONFIG_DIR="/Library/OpenUEMAgent/etc/openuem-agent"
+RELEASE_URL="%s"
+
+echo "Installing OpenUEM Agent..."
+
+# Download and extract config + certificates
+mkdir -p "$CONFIG_DIR"
+curl -fsSL "%s/api/enroll/%s/config?platform=macos" -o /tmp/openuem-config.zip
+unzip -o /tmp/openuem-config.zip -d "$CONFIG_DIR"
+rm /tmp/openuem-config.zip
+
+# Download and install agent
+curl -fsSL "$RELEASE_URL/altiview-agent-darwin-%s.pkg" -o /tmp/openuem-agent.pkg
+installer -pkg /tmp/openuem-agent.pkg -target /
+rm /tmp/openuem-agent.pkg
+
+echo "OpenUEM Agent installed successfully."
+`, agentReleaseBaseURL, consoleURL, token, arch)
+}
+
+func generateWindowsScript(consoleURL, token string) string {
+	return fmt.Sprintf(`$ErrorActionPreference = 'Stop'
+
+$InstallDir = "$env:ProgramFiles\EigerCode\AltiviewAgent"
+$ReleaseURL = "%s"
+
+Write-Host "Installing OpenUEM Agent..."
+
+# Download and extract config + certificates
+New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+Invoke-WebRequest "%s/api/enroll/%s/config?platform=windows" -OutFile "$env:TEMP\openuem-config.zip"
+Expand-Archive "$env:TEMP\openuem-config.zip" $InstallDir -Force
+Remove-Item "$env:TEMP\openuem-config.zip"
+
+# Download and install agent
+Invoke-WebRequest "$ReleaseURL/altiview-agent-windows-amd64.msi" -OutFile "$env:TEMP\openuem-agent.msi"
+Start-Process msiexec -ArgumentList "/i `+"\""+`$env:TEMP\openuem-agent.msi`+"\""+` /qn" -Wait
+Remove-Item "$env:TEMP\openuem-agent.msi"
+
+Write-Host "OpenUEM Agent installed successfully."
+`, agentReleaseBaseURL, consoleURL, token)
+}
 
 func generatePlatformConfigINI(platform, natsServers, token string) string {
 	var sb strings.Builder

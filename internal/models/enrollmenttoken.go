@@ -61,3 +61,11 @@ func (m *Model) GetEnrollmentTokenByValue(tokenValue string) (*ent.EnrollmentTok
 		WithTenant().
 		Only(context.Background())
 }
+
+func (m *Model) IncrementEnrollmentTokenUses(tokenValue string) error {
+	_, err := m.Client.EnrollmentToken.Update().
+		Where(enrollmenttoken.Token(tokenValue)).
+		AddCurrentUses(1).
+		Save(context.Background())
+	return err
+}

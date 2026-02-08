@@ -455,8 +455,9 @@ func (h *Handler) Register(e *echo.Echo) {
 	e.POST("/tenant/:tenant/site/:site/profiles/:uuid/enable", func(c echo.Context) error { return h.EnableProfile(c, true) }, h.IsAuthenticated)
 	e.POST("/tenant/:tenant/site/:site/profiles/:uuid/disable", func(c echo.Context) error { return h.EnableProfile(c, false) }, h.IsAuthenticated)
 
-	// Public API — enrollment config download (token value acts as auth)
+	// Public API — enrollment endpoints (token value acts as auth)
 	e.GET("/api/enroll/:token/config", h.PublicDownloadConfig)
+	e.GET("/api/enroll/:token/install", h.PublicInstallScript)
 
 	e.GET("/register", h.SignIn)
 	e.POST("/register", h.SendRegister)
