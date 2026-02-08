@@ -1,11 +1,13 @@
 package handlers
 
 import (
-	"encoding/base64"
+	"archive/zip"
+	"bytes"
 	"fmt"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -129,15 +131,10 @@ func (h *Handler) ToggleEnrollmentToken(c echo.Context) error {
 	return h.ListEnrollmentTokens(c)
 }
 
-func (h *Handler) DownloadInstallerScript(c echo.Context) error {
+func (h *Handler) DownloadConfigZIP(c echo.Context) error {
 	tokenID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return RenderError(c, partials.ErrorMessage("Invalid token ID", true))
-	}
-
-	platform := c.QueryParam("platform")
-	if platform != "linux" && platform != "windows" {
-		platform = "linux"
 	}
 
 	token, err := h.Model.GetEnrollmentTokenByID(tokenID)
@@ -151,55 +148,206 @@ func (h *Handler) DownloadInstallerScript(c echo.Context) error {
 		log.Printf("[ERROR]: could not read CA certificate: %v", err)
 		return RenderError(c, partials.ErrorMessage("Could not read CA certificate", true))
 	}
-	caCertB64 := base64.StdEncoding.EncodeToString(caCertData)
 
-	tenantID := ""
-	if token.Edges.Tenant != nil {
-		tenantID = strconv.Itoa(token.Edges.Tenant.ID)
+	// Derive external NATS URL from Domain + port from internal NATSServers
+	externalNATS := deriveExternalNATSURL(h.NATSServers, h.Domain)
+
+	iniContent := generateConfigINI(externalNATS, token.Token)
+
+	// Create ZIP in memory
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+
+	// Add openuem.ini
+	fw, err := zw.Create("openuem.ini")
+	if err != nil {
+		return RenderError(c, partials.ErrorMessage("Could not create ZIP file", true))
+	}
+	if _, err := fw.Write([]byte(iniContent)); err != nil {
+		return RenderError(c, partials.ErrorMessage("Could not write config to ZIP", true))
 	}
 
-	siteID := ""
-	if token.Edges.Site != nil {
-		siteID = strconv.Itoa(token.Edges.Site.ID)
+	// Add certificates/ca.cer
+	fw, err = zw.Create("certificates/ca.cer")
+	if err != nil {
+		return RenderError(c, partials.ErrorMessage("Could not create ZIP file", true))
+	}
+	if _, err := fw.Write(caCertData); err != nil {
+		return RenderError(c, partials.ErrorMessage("Could not write certificate to ZIP", true))
 	}
 
-	var script string
-	var filename string
+	if err := zw.Close(); err != nil {
+		return RenderError(c, partials.ErrorMessage("Could not finalize ZIP file", true))
+	}
 
+	filename := fmt.Sprintf("altiview-config-%s.zip", token.Token[:8])
+	c.Response().Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	return c.Blob(200, "application/zip", buf.Bytes())
+}
+
+// PublicDownloadConfig serves config ZIP without session auth.
+// The enrollment token value in the URL acts as authentication.
+func (h *Handler) PublicDownloadConfig(c echo.Context) error {
+	tokenValue := c.Param("token")
+	if tokenValue == "" {
+		return c.String(http.StatusBadRequest, "missing token")
+	}
+
+	token, err := h.Model.GetEnrollmentTokenByValue(tokenValue)
+	if err != nil {
+		return c.String(http.StatusNotFound, "invalid token")
+	}
+
+	if !token.Active {
+		return c.String(http.StatusForbidden, "token is inactive")
+	}
+	if token.ExpiresAt != nil && token.ExpiresAt.Before(time.Now()) {
+		return c.String(http.StatusForbidden, "token has expired")
+	}
+	if token.MaxUses > 0 && token.CurrentUses >= token.MaxUses {
+		return c.String(http.StatusForbidden, "token usage limit reached")
+	}
+
+	platform := c.QueryParam("platform")
+	switch platform {
+	case "linux", "macos", "windows":
+	default:
+		platform = "linux"
+	}
+
+	caCertData, err := os.ReadFile(h.CACertPath)
+	if err != nil {
+		log.Printf("[ERROR]: could not read CA certificate: %v", err)
+		return c.String(http.StatusInternalServerError, "could not read CA certificate")
+	}
+
+	externalNATS := deriveExternalNATSURL(h.NATSServers, h.Domain)
+	iniContent := generatePlatformConfigINI(platform, externalNATS, token.Token)
+
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+
+	fw, err := zw.Create("openuem.ini")
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "could not create ZIP")
+	}
+	if _, err := fw.Write([]byte(iniContent)); err != nil {
+		return c.String(http.StatusInternalServerError, "could not write config")
+	}
+
+	fw, err = zw.Create("certificates/ca.cer")
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "could not create ZIP")
+	}
+	if _, err := fw.Write(caCertData); err != nil {
+		return c.String(http.StatusInternalServerError, "could not write certificate")
+	}
+
+	if err := zw.Close(); err != nil {
+		return c.String(http.StatusInternalServerError, "could not finalize ZIP")
+	}
+
+	c.Response().Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="openuem-config-%s.zip"`, tokenValue[:8]))
+	return c.Blob(http.StatusOK, "application/zip", buf.Bytes())
+}
+
+func (h *Handler) GetInstallCommand(c echo.Context) error {
+	tokenID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return RenderError(c, partials.ErrorMessage("Invalid token ID", true))
+	}
+
+	platform := c.QueryParam("platform")
+	switch platform {
+	case "linux", "macos-amd64", "macos-arm64", "windows":
+	default:
+		platform = "linux"
+	}
+
+	token, err := h.Model.GetEnrollmentTokenByID(tokenID)
+	if err != nil {
+		return RenderError(c, partials.ErrorMessage(err.Error(), true))
+	}
+
+	// Build console base URL from request
+	consoleURL := fmt.Sprintf("https://%s", c.Request().Host)
+
+	var command string
+	var platformLabel string
+
+	switch platform {
+	case "linux":
+		command = generateLinuxOneLiner(consoleURL, token.Token)
+		platformLabel = "Linux"
+	case "macos-amd64":
+		command = generateMacOSOneLiner(consoleURL, token.Token, "amd64")
+		platformLabel = "macOS Intel"
+	case "macos-arm64":
+		command = generateMacOSOneLiner(consoleURL, token.Token, "arm64")
+		platformLabel = "macOS ARM"
+	case "windows":
+		command = generateWindowsOneLiner(consoleURL, token.Token)
+		platformLabel = "Windows"
+	}
+
+	return RenderView(c, admin_views.InstallCommand(command, platformLabel))
+}
+
+func generateLinuxOneLiner(consoleURL, token string) string {
+	return fmt.Sprintf(
+		`sudo bash -c 'curl -fsSL "%s/api/enroll/%s/config?platform=linux" -o /tmp/c.zip && unzip -o /tmp/c.zip -d /etc/openuem-agent/ && curl -fsSL "%s/altiview-agent-linux-amd64.deb" -o /tmp/a.deb && dpkg -i /tmp/a.deb && rm /tmp/c.zip /tmp/a.deb'`,
+		consoleURL, token, agentReleaseBaseURL,
+	)
+}
+
+func generateMacOSOneLiner(consoleURL, token, arch string) string {
+	return fmt.Sprintf(
+		`sudo bash -c 'curl -fsSL "%s/api/enroll/%s/config?platform=macos" -o /tmp/c.zip && unzip -o /tmp/c.zip -d /Library/OpenUEMAgent/etc/openuem-agent/ && curl -fsSL "%s/altiview-agent-darwin-%s.pkg" -o /tmp/a.pkg && installer -pkg /tmp/a.pkg -target / && rm /tmp/c.zip /tmp/a.pkg'`,
+		consoleURL, token, agentReleaseBaseURL, arch,
+	)
+}
+
+func generateWindowsOneLiner(consoleURL, token string) string {
+	return fmt.Sprintf(
+		`$d="$env:ProgramFiles\EigerCode\AltiviewAgent"; Invoke-WebRequest '%s/api/enroll/%s/config?platform=windows' -OutFile "$env:TEMP\c.zip"; Expand-Archive "$env:TEMP\c.zip" $d -Force; Invoke-WebRequest '%s/altiview-agent-windows-amd64.msi' -OutFile "$env:TEMP\a.msi"; Start-Process msiexec "/i `+"`\""+`$env:TEMP\a.msi`+"`\""+` /qn" -Wait; Remove-Item "$env:TEMP\c.zip","$env:TEMP\a.msi"`,
+		consoleURL, token, agentReleaseBaseURL,
+	)
+}
+
+const agentReleaseBaseURL = "https://github.com/EigerCode/openuem-agent/releases/latest/download"
+
+func generatePlatformConfigINI(platform, natsServers, token string) string {
+	var sb strings.Builder
+	sb.WriteString("[Agent]\n")
+	sb.WriteString("UUID=\n")
+	sb.WriteString("Enabled=true\n")
+	sb.WriteString("ExecuteTaskEveryXMinutes=5\n")
+	sb.WriteString("Debug=false\n")
+	sb.WriteString("DefaultFrequency=5\n")
+	sb.WriteString("SFTPPort=2022\n")
+	sb.WriteString("VNCProxyPort=5900\n")
+	sb.WriteString("SFTPDisabled=false\n")
+	sb.WriteString("RemoteAssistanceDisabled=false\n")
+	sb.WriteString(fmt.Sprintf("EnrollmentToken=%s\n", token))
+	sb.WriteString("\n[NATS]\n")
+	sb.WriteString(fmt.Sprintf("NATSServers=%s\n", natsServers))
+	sb.WriteString("\n[Certificates]\n")
 	if platform == "windows" {
-		script = generateWindowsScript(h.NATSServers, tenantID, siteID, token.Token, caCertB64)
-		filename = fmt.Sprintf("openuem-enroll-%s.ps1", token.Token[:8])
+		sb.WriteString("CACert=C:\\Program Files\\EigerCode\\AltiviewAgent\\certificates\\ca.cer\n")
+		sb.WriteString("AgentCert=C:\\Program Files\\EigerCode\\AltiviewAgent\\certificates\\agent.cer\n")
+		sb.WriteString("AgentKey=C:\\Program Files\\EigerCode\\AltiviewAgent\\certificates\\agent.key\n")
+		sb.WriteString("SFTPCert=C:\\Program Files\\EigerCode\\AltiviewAgent\\certificates\\sftp.cer\n")
 	} else {
-		script = generateLinuxScript(h.NATSServers, tenantID, siteID, token.Token, caCertB64)
-		filename = fmt.Sprintf("openuem-enroll-%s.sh", token.Token[:8])
+		sb.WriteString("CACert=certificates/ca.cer\n")
+		sb.WriteString("AgentCert=certificates/agent.cer\n")
+		sb.WriteString("AgentKey=certificates/agent.key\n")
+		sb.WriteString("SFTPCert=certificates/sftp.cer\n")
 	}
-
-	scriptPath := filepath.Join(h.DownloadDir, filename)
-	if err := os.WriteFile(scriptPath, []byte(script), 0755); err != nil {
-		return RenderError(c, partials.ErrorMessage("Could not create script file", true))
-	}
-
-	return c.Attachment(scriptPath, filename)
+	return sb.String()
 }
 
-func generateLinuxScript(natsServers, tenantID, siteID, token, caCertB64 string) string {
+func generateConfigINI(natsServers, token string) string {
 	var sb strings.Builder
-	sb.WriteString("#!/bin/bash\n")
-	sb.WriteString("# OpenUEM Agent Enrollment Script\n")
-	sb.WriteString("# Generated: " + time.Now().Format("2006-01-02 15:04:05") + "\n")
-	sb.WriteString("set -e\n\n")
-
-	sb.WriteString("CONFIG_DIR=\"/etc/openuem-agent\"\n")
-	sb.WriteString("CERT_DIR=\"$CONFIG_DIR/certificates\"\n\n")
-
-	sb.WriteString("# Create directories\n")
-	sb.WriteString("mkdir -p \"$CERT_DIR\"\n\n")
-
-	sb.WriteString("# Write CA certificate\n")
-	sb.WriteString(fmt.Sprintf("echo '%s' | base64 -d > \"$CERT_DIR/ca.cer\"\n\n", caCertB64))
-
-	sb.WriteString("# Write configuration\n")
-	sb.WriteString("cat > \"$CONFIG_DIR/openuem.ini\" << 'OPENUEM_EOF'\n")
 	sb.WriteString("[Agent]\n")
 	sb.WriteString("UUID=\n")
 	sb.WriteString("Enabled=true\n")
@@ -210,65 +358,32 @@ func generateLinuxScript(natsServers, tenantID, siteID, token, caCertB64 string)
 	sb.WriteString("VNCProxyPort=5900\n")
 	sb.WriteString("SFTPDisabled=false\n")
 	sb.WriteString("RemoteAssistanceDisabled=false\n")
-	sb.WriteString(fmt.Sprintf("TenantID=%s\n", tenantID))
-	sb.WriteString(fmt.Sprintf("SiteID=%s\n", siteID))
 	sb.WriteString(fmt.Sprintf("EnrollmentToken=%s\n", token))
 	sb.WriteString("\n[NATS]\n")
 	sb.WriteString(fmt.Sprintf("NATSServers=%s\n", natsServers))
 	sb.WriteString("\n[Certificates]\n")
-	sb.WriteString("CACert=$CERT_DIR/ca.cer\n")
-	sb.WriteString("OPENUEM_EOF\n\n")
-
-	sb.WriteString("echo \"OpenUEM Agent configured successfully.\"\n")
-	sb.WriteString("echo \"Start the agent service to begin enrollment.\"\n")
-
+	sb.WriteString("CACert=certificates/ca.cer\n")
+	sb.WriteString("AgentCert=certificates/agent.cer\n")
+	sb.WriteString("AgentKey=certificates/agent.key\n")
+	sb.WriteString("SFTPCert=certificates/sftp.cer\n")
 	return sb.String()
 }
 
-func generateWindowsScript(natsServers, tenantID, siteID, token, caCertB64 string) string {
-	var sb strings.Builder
-	sb.WriteString("# OpenUEM Agent Enrollment Script (Windows)\n")
-	sb.WriteString("# Generated: " + time.Now().Format("2006-01-02 15:04:05") + "\n")
-	sb.WriteString("$ErrorActionPreference = 'Stop'\n\n")
+// deriveExternalNATSURL constructs the external NATS URL using the console's
+// Domain and the port from the internal NATSServers URL.
+// e.g. internal "tls://nats:4433" + domain "example.com" → "tls://example.com:4433"
+func deriveExternalNATSURL(internalNATS, domain string) string {
+	parsed, err := url.Parse(internalNATS)
+	if err != nil || domain == "" {
+		return internalNATS
+	}
 
-	sb.WriteString("$ConfigDir = \"$env:ProgramData\\openuem-agent\"\n")
-	sb.WriteString("$CertDir = \"$ConfigDir\\certificates\"\n\n")
+	port := parsed.Port()
+	if port == "" {
+		port = "4433"
+	}
 
-	sb.WriteString("# Create directories\n")
-	sb.WriteString("New-Item -ItemType Directory -Force -Path $CertDir | Out-Null\n\n")
-
-	sb.WriteString("# Write CA certificate\n")
-	sb.WriteString(fmt.Sprintf("$caCertB64 = '%s'\n", caCertB64))
-	sb.WriteString("$caCertBytes = [System.Convert]::FromBase64String($caCertB64)\n")
-	sb.WriteString("[System.IO.File]::WriteAllBytes(\"$CertDir\\ca.cer\", $caCertBytes)\n\n")
-
-	sb.WriteString("# Write configuration\n")
-	sb.WriteString("$config = @\"\n")
-	sb.WriteString("[Agent]\n")
-	sb.WriteString("UUID=\n")
-	sb.WriteString("Enabled=true\n")
-	sb.WriteString("ExecuteTaskEveryXMinutes=5\n")
-	sb.WriteString("Debug=false\n")
-	sb.WriteString("DefaultFrequency=5\n")
-	sb.WriteString("SFTPPort=2022\n")
-	sb.WriteString("VNCProxyPort=5900\n")
-	sb.WriteString("SFTPDisabled=false\n")
-	sb.WriteString("RemoteAssistanceDisabled=false\n")
-	sb.WriteString(fmt.Sprintf("TenantID=%s\n", tenantID))
-	sb.WriteString(fmt.Sprintf("SiteID=%s\n", siteID))
-	sb.WriteString(fmt.Sprintf("EnrollmentToken=%s\n", token))
-	sb.WriteString("\n[NATS]\n")
-	sb.WriteString(fmt.Sprintf("NATSServers=%s\n", natsServers))
-	sb.WriteString("\n[Certificates]\n")
-	sb.WriteString("CACert=$CertDir\\ca.cer\n")
-	sb.WriteString("\"@\n\n")
-
-	sb.WriteString("$config | Set-Content -Path \"$ConfigDir\\openuem.ini\" -Encoding UTF8\n\n")
-
-	sb.WriteString("Write-Host 'OpenUEM Agent configured successfully.'\n")
-	sb.WriteString("Write-Host 'Start the agent service to begin enrollment.'\n")
-
-	return sb.String()
+	return fmt.Sprintf("%s://%s:%s", parsed.Scheme, domain, port)
 }
 
 func (h *Handler) listEnrollmentTokensWithError(c echo.Context, commonInfo *partials.CommonInfo, errMsg string) error {

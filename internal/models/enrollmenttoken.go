@@ -53,3 +53,11 @@ func (m *Model) ToggleEnrollmentToken(tokenID int, active bool) error {
 		SetActive(active).
 		Exec(context.Background())
 }
+
+func (m *Model) GetEnrollmentTokenByValue(tokenValue string) (*ent.EnrollmentToken, error) {
+	return m.Client.EnrollmentToken.Query().
+		Where(enrollmenttoken.Token(tokenValue)).
+		WithSite().
+		WithTenant().
+		Only(context.Background())
+}

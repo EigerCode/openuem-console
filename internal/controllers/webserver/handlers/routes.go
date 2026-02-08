@@ -179,7 +179,8 @@ func (h *Handler) Register(e *echo.Echo) {
 	e.POST("/tenant/:tenant/admin/enrollment", h.CreateEnrollmentToken, h.IsAuthenticated, h.TenantAdminMiddleware)
 	e.DELETE("/tenant/:tenant/admin/enrollment/:id", h.DeleteEnrollmentToken, h.IsAuthenticated, h.TenantAdminMiddleware)
 	e.POST("/tenant/:tenant/admin/enrollment/:id/toggle", h.ToggleEnrollmentToken, h.IsAuthenticated, h.TenantAdminMiddleware)
-	e.GET("/tenant/:tenant/admin/enrollment/:id/script", h.DownloadInstallerScript, h.IsAuthenticated, h.TenantAdminMiddleware)
+	e.GET("/tenant/:tenant/admin/enrollment/:id/config", h.DownloadConfigZIP, h.IsAuthenticated, h.TenantAdminMiddleware)
+	e.GET("/tenant/:tenant/admin/enrollment/:id/command", h.GetInstallCommand, h.IsAuthenticated, h.TenantAdminMiddleware)
 
 	e.GET("/tenant/:tenant/admin/sites", func(c echo.Context) error { return h.ListSites(c, "", "", false) }, h.IsAuthenticated, h.TenantAdminMiddleware)
 	e.GET("/tenant/:tenant/admin/sites/new", h.NewSite, h.IsAuthenticated, h.TenantAdminMiddleware)
@@ -453,6 +454,9 @@ func (h *Handler) Register(e *echo.Echo) {
 	e.GET("/tenant/:tenant/site/:site/profiles/:uuid/issues", h.ProfileIssues, h.IsAuthenticated)
 	e.POST("/tenant/:tenant/site/:site/profiles/:uuid/enable", func(c echo.Context) error { return h.EnableProfile(c, true) }, h.IsAuthenticated)
 	e.POST("/tenant/:tenant/site/:site/profiles/:uuid/disable", func(c echo.Context) error { return h.EnableProfile(c, false) }, h.IsAuthenticated)
+
+	// Public API — enrollment config download (token value acts as auth)
+	e.GET("/api/enroll/:token/config", h.PublicDownloadConfig)
 
 	e.GET("/register", h.SignIn)
 	e.POST("/register", h.SendRegister)
