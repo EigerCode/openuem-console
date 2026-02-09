@@ -197,7 +197,7 @@ func (h *Handler) DownloadConfigZIP(c echo.Context) error {
 		return RenderError(c, partials.ErrorMessage("Could not create ZIP file", true))
 	}
 
-	filename := fmt.Sprintf("altiview-config-%s.zip", token.Token[:8])
+	filename := fmt.Sprintf("openuem-config-%s.zip", token.Token[:8])
 	c.Response().Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 	return c.Blob(200, "application/zip", zipData)
 }
@@ -343,7 +343,7 @@ func (h *Handler) PublicInstallScript(c echo.Context) error {
 	return c.Blob(http.StatusOK, contentType, []byte(script))
 }
 
-const agentReleaseBaseURL = "https://github.com/EigerCode/openuem-agent/releases/latest/download"
+const agentReleaseBaseURL = "https://github.com/open-uem/openuem-agent/releases/latest/download"
 
 func generateLinuxScript(consoleURL, token string) string {
 	return fmt.Sprintf(`#!/bin/bash
@@ -361,7 +361,7 @@ unzip -o /tmp/openuem-config.zip -d "$CONFIG_DIR"
 rm /tmp/openuem-config.zip
 
 # Download and install agent
-curl -fsSL "$RELEASE_URL/altiview-agent-linux-amd64.deb" -o /tmp/openuem-agent.deb
+curl -fsSL "$RELEASE_URL/openuem-agent-linux-amd64.deb" -o /tmp/openuem-agent.deb
 dpkg -i /tmp/openuem-agent.deb
 rm /tmp/openuem-agent.deb
 
@@ -385,7 +385,7 @@ unzip -o /tmp/openuem-config.zip -d "$CONFIG_DIR"
 rm /tmp/openuem-config.zip
 
 # Download and install agent
-curl -fsSL "$RELEASE_URL/altiview-agent-darwin-%s.pkg" -o /tmp/openuem-agent.pkg
+curl -fsSL "$RELEASE_URL/openuem-agent-darwin-%s.pkg" -o /tmp/openuem-agent.pkg
 installer -pkg /tmp/openuem-agent.pkg -target /
 rm /tmp/openuem-agent.pkg
 
@@ -396,7 +396,7 @@ echo "OpenUEM Agent installed successfully."
 func generateWindowsScript(consoleURL, token string) string {
 	return fmt.Sprintf(`$ErrorActionPreference = 'Stop'
 
-$InstallDir = "$env:ProgramFiles\EigerCode\AltiviewAgent"
+$InstallDir = "$env:ProgramFiles\OpenUEM\Agent"
 $ReleaseURL = "%s"
 
 Write-Host "Installing OpenUEM Agent..."
@@ -408,7 +408,7 @@ Expand-Archive "$env:TEMP\openuem-config.zip" $InstallDir -Force
 Remove-Item "$env:TEMP\openuem-config.zip"
 
 # Download and install agent
-Invoke-WebRequest "$ReleaseURL/altiview-agent-windows-amd64.msi" -OutFile "$env:TEMP\openuem-agent.msi"
+Invoke-WebRequest "$ReleaseURL/openuem-agent-windows-amd64.msi" -OutFile "$env:TEMP\openuem-agent.msi"
 Start-Process msiexec -ArgumentList "/i `+"\""+`$env:TEMP\openuem-agent.msi`+"\""+` /qn" -Wait
 Remove-Item "$env:TEMP\openuem-agent.msi"
 
@@ -433,10 +433,10 @@ func generatePlatformConfigINI(platform, natsServers, token string) string {
 	sb.WriteString(fmt.Sprintf("NATSServers=%s\n", natsServers))
 	sb.WriteString("\n[Certificates]\n")
 	if platform == "windows" {
-		sb.WriteString("CACert=C:\\Program Files\\EigerCode\\AltiviewAgent\\certificates\\ca.cer\n")
-		sb.WriteString("AgentCert=C:\\Program Files\\EigerCode\\AltiviewAgent\\certificates\\agent.cer\n")
-		sb.WriteString("AgentKey=C:\\Program Files\\EigerCode\\AltiviewAgent\\certificates\\agent.key\n")
-		sb.WriteString("SFTPCert=C:\\Program Files\\EigerCode\\AltiviewAgent\\certificates\\sftp.cer\n")
+		sb.WriteString("CACert=C:\\Program Files\\OpenUEM\\Agent\\certificates\\ca.cer\n")
+		sb.WriteString("AgentCert=C:\\Program Files\\OpenUEM\\Agent\\certificates\\agent.cer\n")
+		sb.WriteString("AgentKey=C:\\Program Files\\OpenUEM\\Agent\\certificates\\agent.key\n")
+		sb.WriteString("SFTPCert=C:\\Program Files\\OpenUEM\\Agent\\certificates\\sftp.cer\n")
 	} else {
 		sb.WriteString("CACert=certificates/ca.cer\n")
 		sb.WriteString("AgentCert=certificates/agent.cer\n")
