@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	entgo.io/ent v0.14.5
-	github.com/EigerCode/ent v0.0.0-20260204201821-ec41271a60aa
+	github.com/EigerCode/ent v0.0.0-20260209175548-ae8896177066
 	github.com/EigerCode/nats v0.0.0-20260203192215-59b1eb7551d6
 	github.com/EigerCode/utils v0.0.0-20260203190441-952c72a58011
 	github.com/EigerCode/wingetcfg v0.0.0-20251011111407-80e823d91ea5
