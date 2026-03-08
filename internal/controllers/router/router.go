@@ -50,13 +50,21 @@ func New(s *sessions.SessionManager, server, port, maxUploadSize string) *echo.E
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 	}))
 
-	// Add CSRF middleware
+	// Add CSRF middleware.
+	// CSRF protection prevents browser-based cross-site request forgery by requiring a
+	// token cookie on form submissions. Public enrollment API endpoints don't use browser
+	// sessions/cookies, so CSRF does not apply to them.
+	// NanoHub webhook runs on a separate internal port (webhook server).
 	e.Use(mw.CSRFWithConfig(mw.CSRFConfig{
 		TokenLookup:    "cookie:_csrf",
 		CookiePath:     "/",
 		CookieSecure:   true,
 		CookieHTTPOnly: true,
 		CookieSameSite: http.SameSiteStrictMode,
+		Skipper: func(c echo.Context) bool {
+			path := c.Request().URL.Path
+			return strings.HasPrefix(path, "/api/")
+		},
 	}))
 
 	// Add sessions middleware

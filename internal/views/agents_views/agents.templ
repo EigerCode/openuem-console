@@ -211,13 +211,17 @@ templ AgentInfo(agent *ent.Agent) {
 		<div class="uk-card-body">
 			<table class="uk-table uk-table-striped  mt-2">
 				<tr><th>{ i18n.T(ctx, "agents.hostname") }</th><td>{ agent.Hostname }</td></tr>
-				<tr><th>{ i18n.T(ctx, "agents.manufacturer") }</th><td>{ agent.Edges.Computer.Manufacturer }</td></tr>
-				<tr><th>{ i18n.T(ctx, "Serial") }</th><td>{ agent.Edges.Computer.Serial }</td></tr>
+				if agent.Edges.Computer != nil {
+					<tr><th>{ i18n.T(ctx, "agents.manufacturer") }</th><td>{ agent.Edges.Computer.Manufacturer }</td></tr>
+					<tr><th>{ i18n.T(ctx, "Serial") }</th><td>{ agent.Edges.Computer.Serial }</td></tr>
+				}
 				<tr><th>{ i18n.T(ctx, "inventory.network_adapters.mac_address") }</th><td>{ agent.MAC }</td></tr>
 				<tr><th>{ i18n.T(ctx, "inventory.network_adapters.ip_address") }</th><td>{ agent.IP }</td></tr>
 				<tr><th>{ i18n.T(ctx, "OperatingSystem") }</th><td>{ agent.Os }</td></tr>
-				<tr><th>{ i18n.T(ctx, "agents.version") }</th><td>{ agent.Edges.Operatingsystem.Version }</td></tr>
-				<tr><th>{ i18n.T(ctx, "agents.username") }</th><td>{ agent.Edges.Operatingsystem.Username }</td></tr>
+				if agent.Edges.Operatingsystem != nil {
+					<tr><th>{ i18n.T(ctx, "agents.version") }</th><td>{ agent.Edges.Operatingsystem.Version }</td></tr>
+					<tr><th>{ i18n.T(ctx, "agents.username") }</th><td>{ agent.Edges.Operatingsystem.Username }</td></tr>
+				}
 			</table>
 		</div>
 	</div>

@@ -260,6 +260,38 @@ templ ConfigNavbar(active string, agentsExists, serversExists bool, commonInfo *
 				</a>
 			</li>
 		}
+		if commonInfo.TenantID == "-1" {
+			<li class={ templ.KV("uk-active", active == "nanohub") }>
+				<a
+					href="/admin/nanohub"
+					hx-get="/admin/nanohub"
+					hx-push-url="true"
+					hx-target="#main"
+					hx-swap="outerHTML"
+					hx-indicator="#admin-nanohub-spinner"
+					class="flex items-center gap-1"
+				>
+					<uk-icon id="admin-nanohub-spinner" hx-history="false" icon="loader-circle" custom-class="htmx-indicator h-4 w-4 animate-spin" uk-cloack></uk-icon>
+					NanoHub
+				</a>
+			</li>
+		}
+		if commonInfo.TenantID != "-1" && commonInfo.UserRole == "admin" {
+			<li class={ templ.KV("uk-active", active == "nanohub") }>
+				<a
+					href={ templ.URL(fmt.Sprintf("/tenant/%s/admin/nanohub", commonInfo.TenantID)) }
+					hx-get={ string(templ.URL(fmt.Sprintf("/tenant/%s/admin/nanohub", commonInfo.TenantID))) }
+					hx-push-url="true"
+					hx-target="#main"
+					hx-swap="outerHTML"
+					hx-indicator="#admin-mdm-spinner"
+					class="flex items-center gap-1"
+				>
+					<uk-icon id="admin-mdm-spinner" hx-history="false" icon="loader-circle" custom-class="htmx-indicator h-4 w-4 animate-spin" uk-cloack></uk-icon>
+					MDM
+				</a>
+			</li>
+		}
 		<li class={ templ.KV("uk-active", active == "settings") }>
 			<a
 				if commonInfo.TenantID != "-1" {

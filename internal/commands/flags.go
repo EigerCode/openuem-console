@@ -83,6 +83,12 @@ func StartConsoleFlags() []cli.Flag {
 			Value:   "1324",
 		},
 		&cli.StringFlag{
+			Name:    "webhook-port",
+			Usage:   "the TCP port used by the internal webhook server (NanoHub)",
+			EnvVars: []string{"WEBHOOK_PORT"},
+			Value:   "1325",
+		},
+		&cli.StringFlag{
 			Name:     "domain",
 			Usage:    "the DNS domain used to contact agents",
 			EnvVars:  []string{"DOMAIN"},

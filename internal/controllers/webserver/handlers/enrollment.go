@@ -49,8 +49,13 @@ func (h *Handler) ListEnrollmentTokens(c echo.Context) error {
 		return RenderError(c, partials.ErrorMessage(err.Error(), false))
 	}
 
+	hasPushCert := false
+	if pushCert, err := h.Model.GetNanoHubPushCert(tenantID); err == nil && pushCert.ApnsTopic != "" {
+		hasPushCert = true
+	}
+
 	return RenderView(c, admin_views.EnrollmentTokensIndex(" | Enrollment",
-		admin_views.EnrollmentTokens(c, tokens, sites, "", agentsExists, serversExists, commonInfo),
+		admin_views.EnrollmentTokens(c, tokens, sites, "", agentsExists, serversExists, hasPushCert, commonInfo),
 		commonInfo))
 }
 
@@ -496,7 +501,12 @@ func (h *Handler) listEnrollmentTokensWithError(c echo.Context, commonInfo *part
 	agentsExists, _ := h.Model.AgentsExists(commonInfo)
 	serversExists, _ := h.Model.ServersExists()
 
+	hasPushCert := false
+	if pushCert, err := h.Model.GetNanoHubPushCert(tenantID); err == nil && pushCert.ApnsTopic != "" {
+		hasPushCert = true
+	}
+
 	return RenderView(c, admin_views.EnrollmentTokensIndex(" | Enrollment",
-		admin_views.EnrollmentTokens(c, tokens, sites, errMsg, agentsExists, serversExists, commonInfo),
+		admin_views.EnrollmentTokens(c, tokens, sites, errMsg, agentsExists, serversExists, hasPushCert, commonInfo),
 		commonInfo))
 }

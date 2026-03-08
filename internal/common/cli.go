@@ -44,6 +44,7 @@ func (w *Worker) GenerateConsoleConfigFromCLI(cCtx *cli.Context) error {
 
 	w.ConsolePort = cCtx.String("console-port")
 	w.AuthPort = cCtx.String("auth-port")
+	w.WebhookPort = cCtx.String("webhook-port")
 	w.ServerName = cCtx.String("server-name")
 	w.Domain = cCtx.String("domain")
 	w.OrgName = cCtx.String("org-name")

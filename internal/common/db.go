@@ -8,6 +8,7 @@ import (
 	"github.com/go-co-op/gocron/v2"
 	"github.com/open-uem/openuem-console/internal/controllers/authserver"
 	"github.com/open-uem/openuem-console/internal/controllers/sessions"
+	"github.com/open-uem/openuem-console/internal/controllers/webhookserver"
 	"github.com/open-uem/openuem-console/internal/controllers/webserver"
 	"github.com/open-uem/openuem-console/internal/models"
 )
@@ -215,4 +216,20 @@ func (w *Worker) StartConsoleService() {
 		}
 	}()
 	log.Println("[INFO]: auth server is running")
+
+	// HTTPS webhook server (internal port for NanoHub webhooks)
+	webhookPort := "1325"
+	if w.WebhookPort != "" {
+		webhookPort = w.WebhookPort
+	}
+
+	// The webhook server needs the NATS connection from the web server handler
+	var natsConn = w.WebServer.Handler.NATSConnection
+	w.WebhookServer = webhookserver.New(w.Model, natsConn)
+	go func() {
+		if err := w.WebhookServer.Serve(":"+webhookPort, w.ConsoleCertPath, w.ConsolePrivateKeyPath); err != http.ErrServerClosed {
+			log.Printf("[ERROR]: the webhook server has stopped, reason: %v", err.Error())
+		}
+	}()
+	log.Printf("[INFO]: webhook server is running on port %s", webhookPort)
 }

@@ -292,16 +292,27 @@ func (h *Handler) AgentConfirmDelete(c echo.Context) error {
 	}
 
 	deleteAction := c.FormValue("agent-delete-action")
+	isNanoHub := h.Model.IsNanoHubAgent(agentId)
 
 	if deleteAction == "delete-and-uninstall" || deleteAction == "keep-and-uninstall" {
-		if h.NATSConnection == nil || !h.NATSConnection.IsConnected() {
-			return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "nats.not_connected"), false))
-		}
+		if isNanoHub {
+			// For NanoHub agents: send RemoveProfile instead of agent.uninstall
+			settings, err := h.Model.GetNanoHubSettings()
+			if err == nil && settings.ServerURL != "" && settings.EnrollmentProfileID != "" {
+				if err := h.enqueueRemoveProfileCommand(settings.ServerURL, settings.Username, settings.Password, agentId, settings.EnrollmentProfileID); err != nil {
+					log.Printf("[WARN]: could not send RemoveProfile for NanoHub agent %s: %v", agentId, err)
+				}
+			}
+		} else {
+			if h.NATSConnection == nil || !h.NATSConnection.IsConnected() {
+				return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "nats.not_connected"), false))
+			}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		if _, err := h.JetStream.Publish(ctx, "agent.uninstall."+agentId, nil); err != nil {
-			return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "agents.could_not_send_request_to_uninstall"), true))
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if _, err := h.JetStream.Publish(ctx, "agent.uninstall."+agentId, nil); err != nil {
+				return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "agents.could_not_send_request_to_uninstall"), true))
+			}
 		}
 	}
 

@@ -1,0 +1,246 @@
+package admin_views
+
+import (
+	"fmt"
+	"github.com/invopop/ctxi18n/i18n"
+	"github.com/labstack/echo/v4"
+	"github.com/open-uem/ent"
+	"github.com/open-uem/openuem-console/internal/views/layout"
+	"github.com/open-uem/openuem-console/internal/views/partials"
+	"time"
+)
+
+templ NanoHubPushCert(c echo.Context, pushCert *ent.NanoHubPushCertificate, vendorCertConfigured bool, agentsExists, serversExists bool, commonInfo *partials.CommonInfo) {
+	@partials.Header(c, []partials.Breadcrumb{
+		{Title: i18n.T(ctx, "Settings"), Url: fmt.Sprintf("/tenant/%s/admin", commonInfo.TenantID)},
+		{Title: i18n.T(ctx, "nanohub.push_cert_title"), Url: fmt.Sprintf("/tenant/%s/admin/nanohub", commonInfo.TenantID)},
+	}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@ConfigNavbar("nanohub", agentsExists, serversExists, commonInfo)
+				<div id="success" class="hidden"></div>
+				<div id="error" class="hidden"></div>
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<div class="uk-card-title flex gap-2 items-center">
+							{ i18n.T(ctx, "nanohub.push_cert_title") }
+						</div>
+						<p class="uk-margin-small-top uk-text-small">
+							{ i18n.T(ctx, "nanohub.push_cert_description") }
+							<a href="https://identity.apple.com/" target="_blank" rel="noopener noreferrer" class="uk-link">
+								Apple Push Certificates Portal
+								<uk-icon icon="external-link" custom-class="h-3 w-3 inline-block"></uk-icon>
+							</a>
+						</p>
+					</div>
+					<div class="uk-card-body">
+						if pushCert.CertificatePem != "" {
+							<!-- Push Certificate is configured -->
+							<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped">
+								<tr>
+									<td class="!align-middle uk-text-bold">{ i18n.T(ctx, "nanohub.apns_topic") }</td>
+									<td class="!align-middle">
+										<code>{ pushCert.ApnsTopic }</code>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle uk-text-bold">{ i18n.T(ctx, "nanohub.expires_at") }</td>
+									<td class="!align-middle">
+										if pushCert.ExpiresAt != nil {
+											if pushCert.ExpiresAt.Before(time.Now()) {
+												<span class="uk-label uk-label-danger">
+													{ pushCert.ExpiresAt.Format("2006-01-02") } - { i18n.T(ctx, "nanohub.cert_expired") }
+												</span>
+											} else if pushCert.ExpiresAt.Before(time.Now().AddDate(0, 1, 0)) {
+												<span class="uk-label uk-label-warning">
+													{ pushCert.ExpiresAt.Format("2006-01-02") } - { i18n.T(ctx, "nanohub.cert_expiring_soon") }
+												</span>
+											} else {
+												<span class="uk-label uk-label-success">
+													{ pushCert.ExpiresAt.Format("2006-01-02") }
+												</span>
+											}
+										}
+									</td>
+								</tr>
+								if pushCert.UploadedAt != nil {
+									<tr>
+										<td class="!align-middle uk-text-bold">{ i18n.T(ctx, "nanohub.uploaded_at") }</td>
+										<td class="!align-middle">{ pushCert.UploadedAt.Format("2006-01-02 15:04") }</td>
+									</tr>
+								}
+							</table>
+							if pushCert.CsrPem != "" {
+								<!-- Renewal in progress: CSR generated, waiting for new cert upload -->
+								<div class="uk-alert uk-alert-warning uk-margin-top">
+									<p>{ i18n.T(ctx, "nanohub.renewal_in_progress") }</p>
+								</div>
+								<div class="uk-alert uk-alert-primary uk-margin-small-top">
+									<p>{ i18n.T(ctx, "nanohub.renewal_warning") }</p>
+								</div>
+								if vendorCertConfigured {
+									<div class="flex gap-2 mt-4">
+										<form
+											method="post"
+											action={ templ.SafeURL(fmt.Sprintf("/tenant/%s/admin/nanohub/sign", commonInfo.TenantID)) }
+										>
+											<button type="submit" class="uk-button uk-button-primary uk-button-small">
+												{ i18n.T(ctx, "nanohub.sign_push_request") }
+											</button>
+										</form>
+										<a
+											href="https://identity.apple.com/"
+											target="_blank"
+											rel="noopener noreferrer"
+											class="uk-button uk-button-default uk-button-small"
+										>
+											{ i18n.T(ctx, "nanohub.open_apple_portal") }
+											<uk-icon icon="external-link" custom-class="h-4 w-4"></uk-icon>
+										</a>
+									</div>
+									<!-- Upload renewed certificate -->
+									<div class="uk-card uk-card-default uk-card-body uk-margin-top">
+										<h4>{ i18n.T(ctx, "nanohub.upload_renewed_cert") }</h4>
+										<form
+											hx-post={ fmt.Sprintf("/tenant/%s/admin/nanohub/pushcert", commonInfo.TenantID) }
+											hx-target="#main"
+											hx-swap="outerHTML"
+											hx-encoding="multipart/form-data"
+											class="flex items-end gap-4"
+										>
+											<div>
+												<label class="uk-form-label">{ i18n.T(ctx, "nanohub.push_cert_file") }</label>
+												<input type="file" name="push_cert" accept=".pem,.crt,.cer" class="uk-input"/>
+											</div>
+											<button type="submit" class="uk-button uk-button-primary uk-button-small">
+												{ i18n.T(ctx, "nanohub.upload_push_cert") }
+											</button>
+										</form>
+									</div>
+								} else {
+									<div class="uk-alert uk-alert-warning uk-margin-top">
+										<p>{ i18n.T(ctx, "nanohub.vendor_cert_required") }</p>
+									</div>
+									<a
+										href="/admin/nanohub"
+										hx-get="/admin/nanohub"
+										hx-push-url="true"
+										hx-target="#main"
+										hx-swap="outerHTML"
+										class="uk-button uk-button-default uk-button-small mt-4"
+									>
+										{ i18n.T(ctx, "nanohub.go_to_global_settings") }
+									</a>
+								}
+							} else {
+								<!-- No renewal in progress -->
+								<div class="flex gap-2 mt-4">
+									<form
+										method="post"
+										action={ templ.SafeURL(fmt.Sprintf("/tenant/%s/admin/nanohub/renew", commonInfo.TenantID)) }
+									>
+										<button type="submit" class="uk-button uk-button-default uk-button-small">
+											{ i18n.T(ctx, "nanohub.renew_cert") }
+										</button>
+									</form>
+									<a
+										href="https://identity.apple.com/"
+										target="_blank"
+										rel="noopener noreferrer"
+										class="uk-button uk-button-primary uk-button-small"
+									>
+										{ i18n.T(ctx, "nanohub.open_apple_portal") }
+										<uk-icon icon="external-link" custom-class="h-4 w-4"></uk-icon>
+									</a>
+								</div>
+							}
+						} else if pushCert.CsrPem != "" {
+							<!-- Initial setup: CSR generated, ready to sign -->
+							if vendorCertConfigured {
+								<div class="uk-alert uk-alert-primary">
+									<p>{ i18n.T(ctx, "nanohub.sign_push_info") }</p>
+								</div>
+								<div class="flex gap-2 mt-4">
+									<form
+										method="post"
+										action={ templ.SafeURL(fmt.Sprintf("/tenant/%s/admin/nanohub/sign", commonInfo.TenantID)) }
+									>
+										<button type="submit" class="uk-button uk-button-primary uk-button-small">
+											{ i18n.T(ctx, "nanohub.sign_push_request") }
+										</button>
+									</form>
+									<a
+										href="https://identity.apple.com/"
+										target="_blank"
+										rel="noopener noreferrer"
+										class="uk-button uk-button-default uk-button-small"
+									>
+										{ i18n.T(ctx, "nanohub.open_apple_portal") }
+										<uk-icon icon="external-link" custom-class="h-4 w-4"></uk-icon>
+									</a>
+								</div>
+								<!-- Upload Push Certificate from Apple -->
+								<div class="uk-card uk-card-default uk-card-body uk-margin-top">
+									<h4>{ i18n.T(ctx, "nanohub.upload_push_cert") }</h4>
+									<form
+										hx-post={ fmt.Sprintf("/tenant/%s/admin/nanohub/pushcert", commonInfo.TenantID) }
+										hx-target="#main"
+										hx-swap="outerHTML"
+										hx-encoding="multipart/form-data"
+										class="flex items-end gap-4"
+									>
+										<div>
+											<label class="uk-form-label">{ i18n.T(ctx, "nanohub.push_cert_file") }</label>
+											<input type="file" name="push_cert" accept=".pem,.crt,.cer" class="uk-input"/>
+										</div>
+										<button type="submit" class="uk-button uk-button-primary uk-button-small">
+											{ i18n.T(ctx, "nanohub.upload_push_cert") }
+										</button>
+									</form>
+								</div>
+							} else {
+								<div class="uk-alert uk-alert-warning">
+									<p>
+										{ i18n.T(ctx, "nanohub.vendor_cert_required") }
+									</p>
+								</div>
+								<a
+									href="/admin/nanohub"
+									hx-get="/admin/nanohub"
+									hx-push-url="true"
+									hx-target="#main"
+									hx-swap="outerHTML"
+									class="uk-button uk-button-default uk-button-small mt-4"
+								>
+									{ i18n.T(ctx, "nanohub.go_to_global_settings") }
+								</a>
+							}
+						} else {
+							<!-- No certificate at all - generate push CSR -->
+							<div class="uk-alert uk-alert-warning">
+								<p>{ i18n.T(ctx, "nanohub.no_push_cert") }</p>
+							</div>
+							<form
+								hx-post={ fmt.Sprintf("/tenant/%s/admin/nanohub/csr", commonInfo.TenantID) }
+								hx-target="#main"
+								hx-swap="outerHTML"
+								class="mt-4"
+							>
+								<button type="submit" class="uk-button uk-button-primary">
+									{ i18n.T(ctx, "nanohub.generate_push_csr") }
+								</button>
+							</form>
+						}
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+templ NanoHubPushCertIndex(title string, cmp templ.Component, commonInfo *partials.CommonInfo) {
+	@layout.Base("admin", commonInfo) {
+		@cmp
+	}
+}

@@ -1,0 +1,178 @@
+package admin_views
+
+import (
+	"github.com/invopop/ctxi18n/i18n"
+	"github.com/labstack/echo/v4"
+	"github.com/open-uem/ent"
+	"github.com/open-uem/openuem-console/internal/views/layout"
+	"github.com/open-uem/openuem-console/internal/views/partials"
+)
+
+templ NanoHubGlobalSettings(c echo.Context, settings *ent.NanoHubSettings, agentsExists, serversExists bool, commonInfo *partials.CommonInfo) {
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Global Config"), Url: "/admin/users"}, {Title: i18n.T(ctx, "nanohub.settings_title"), Url: "/admin/nanohub"}}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@ConfigNavbar("nanohub", agentsExists, serversExists, commonInfo)
+				<div id="success" class="hidden"></div>
+				<div id="error" class="hidden"></div>
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<div class="uk-card-title flex gap-2 items-center">
+							{ i18n.T(ctx, "nanohub.settings_title") }
+						</div>
+						<p class="uk-margin-small-top uk-text-small">
+							{ i18n.T(ctx, "nanohub.settings_description") }
+						</p>
+					</div>
+					<div class="uk-card-body">
+						<form class="flex flex-col mt-6 gap-4 w-2/3">
+							<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped mt-6">
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.server_url_title") }</td>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.server_url_description") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="text" name="server_url" value={ settings.ServerURL } spellcheck="false" autocomplete="off" autofocus/>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.username_title") }</td>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.username_description") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="text" name="username" value={ settings.Username } spellcheck="false" autocomplete="off"/>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.password_title") }</td>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.password_description") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="password" name="password" value={ settings.Password } spellcheck="false" autocomplete="off"/>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.ca_cer_file_title") }</td>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.ca_cer_file_description") }</td>
+									<td class="!align-middle">
+										<textarea class="uk-textarea" name="ca_cer_file" rows="6" spellcheck="false">
+											{ settings.CaCerFile }
+										</textarea>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.scep_url_title") }</td>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.scep_url_description") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="text" name="scep_url" value={ settings.ScepURL } spellcheck="false" autocomplete="off"/>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.scep_challenge_title") }</td>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.scep_challenge_description") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="password" name="scep_challenge" value={ settings.ScepChallenge } spellcheck="false" autocomplete="off"/>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.mdm_url_title") }</td>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.mdm_url_description") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="text" name="mdm_url" value={ settings.MdmURL } spellcheck="false" autocomplete="off"/>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.enrollment_profile_id_title") }</td>
+									<td class="!align-middle">{ i18n.T(ctx, "nanohub.enrollment_profile_id_description") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="text" name="enrollment_profile_id" value={ settings.EnrollmentProfileID } spellcheck="false" autocomplete="off"/>
+									</td>
+								</tr>
+							</table>
+							<div class="flex flex-row-reverse gap-2">
+								<button
+									hx-post="/admin/nanohub"
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-push-url="false"
+									type="submit"
+									class="uk-button uk-button-primary"
+								>
+									{ i18n.T(ctx, "nanohub.settings_save") }
+								</button>
+								<button
+									hx-delete="/admin/nanohub"
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-push-url="false"
+									hx-confirm={ i18n.T(ctx, "nanohub.confirm_delete_settings") }
+									type="button"
+									class="uk-button uk-button-danger"
+								>
+									{ i18n.T(ctx, "nanohub.settings_delete") }
+								</button>
+							</div>
+						</form>
+					</div>
+				<!-- Vendor Certificate Section -->
+				<div class="uk-width-1-2@m uk-card uk-card-default uk-margin-top">
+					<div class="uk-card-header">
+						<div class="uk-card-title flex gap-2 items-center">
+							{ i18n.T(ctx, "nanohub.vendor_cert_title") }
+						</div>
+						<p class="uk-margin-small-top uk-text-small">
+							{ i18n.T(ctx, "nanohub.vendor_cert_description") }
+						</p>
+					</div>
+					<div class="uk-card-body">
+						if settings.VendorCertPem != "" && settings.VendorPrivateKeyPem != "" {
+							<div class="uk-alert uk-alert-success">
+								<p>{ i18n.T(ctx, "nanohub.vendor_cert_configured") }</p>
+							</div>
+							<button
+								hx-delete="/admin/nanohub/vendor"
+								hx-target="#main"
+								hx-swap="outerHTML"
+								hx-confirm={ i18n.T(ctx, "nanohub.confirm_delete_vendor_cert") }
+								type="button"
+								class="uk-button uk-button-danger uk-button-small uk-margin-small-top"
+							>
+								{ i18n.T(ctx, "nanohub.delete_vendor_cert") }
+							</button>
+						} else {
+							<div class="uk-alert uk-alert-warning">
+								<p>{ i18n.T(ctx, "nanohub.vendor_cert_not_configured") }</p>
+							</div>
+							<form
+								hx-post="/admin/nanohub/vendor"
+								hx-target="#main"
+								hx-swap="outerHTML"
+								hx-encoding="multipart/form-data"
+								class="flex flex-col gap-4 mt-4"
+							>
+								<div>
+									<label class="uk-form-label">{ i18n.T(ctx, "nanohub.vendor_cert_file") }</label>
+									<input type="file" name="vendor_cert" accept=".pem,.cer,.crt" class="uk-input"/>
+								</div>
+								<div>
+									<label class="uk-form-label">{ i18n.T(ctx, "nanohub.vendor_key_file") }</label>
+									<input type="file" name="vendor_key" accept=".pem,.key" class="uk-input"/>
+								</div>
+								<div>
+									<button type="submit" class="uk-button uk-button-primary uk-button-small">
+										{ i18n.T(ctx, "nanohub.upload_vendor_cert") }
+									</button>
+								</div>
+							</form>
+						}
+					</div>
+				</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+templ NanoHubSettingsIndex(title string, cmp templ.Component, commonInfo *partials.CommonInfo) {
+	@layout.Base("admin", commonInfo) {
+		@cmp
+	}
+}

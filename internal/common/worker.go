@@ -7,6 +7,7 @@ import (
 	"github.com/go-co-op/gocron/v2"
 	"github.com/open-uem/openuem-console/internal/controllers/authserver"
 	"github.com/open-uem/openuem-console/internal/controllers/sessions"
+	"github.com/open-uem/openuem-console/internal/controllers/webhookserver"
 	"github.com/open-uem/openuem-console/internal/controllers/webserver"
 	"github.com/open-uem/openuem-console/internal/models"
 	"github.com/open-uem/utils"
@@ -30,9 +31,11 @@ type Worker struct {
 	SessionManager                    *sessions.SessionManager
 	WebServer                         *webserver.WebServer
 	AuthServer                        *authserver.AuthServer
+	WebhookServer                     *webhookserver.WebhookServer
 	DownloadDir                       string
 	ConsolePort                       string
 	AuthPort                          string
+	WebhookPort                       string
 	ServerName                        string
 	Domain                            string
 	NATSServers                       string
@@ -135,6 +138,12 @@ func (w *Worker) StopWorker() {
 	if w.AuthServer != nil {
 		if err := w.AuthServer.Close(); err != nil {
 			log.Println("[ERROR]: Error closing the auth server")
+		}
+	}
+
+	if w.WebhookServer != nil {
+		if err := w.WebhookServer.Close(); err != nil {
+			log.Println("[ERROR]: Error closing the webhook server")
 		}
 	}
 
