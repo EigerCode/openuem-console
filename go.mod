@@ -9,6 +9,9 @@ require (
 	github.com/alexedwards/argon2id v1.0.0
 	github.com/alexedwards/scs/pgxstore v0.0.0-20251002162104-209de6e426de
 	github.com/alexedwards/scs/v2 v2.9.0
+	github.com/aws/aws-sdk-go-v2 v1.41.3
+	github.com/aws/aws-sdk-go-v2/credentials v1.19.11
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.4
 	github.com/biter777/countries v1.7.5
 	github.com/canidam/echo-scs-session v1.0.0
 	github.com/coreos/go-oidc/v3 v3.16.0
@@ -46,6 +49,7 @@ require (
 	golang.org/x/oauth2 v0.32.0
 	golang.org/x/sys v0.37.0
 	gopkg.in/ini.v1 v1.67.0
+	gopkg.in/yaml.v3 v3.0.1
 	software.sslmate.com/src/go-pkcs12 v0.6.0
 )
 
@@ -54,6 +58,15 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.6 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.19 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.19 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.20 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.11 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.19 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.19 // indirect
+	github.com/aws/smithy-go v1.24.2 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/boombuler/barcode v1.1.0 // indirect
@@ -114,5 +127,6 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/open-uem/ent => ../ent

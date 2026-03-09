@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/open-uem/openuem-console/internal/controllers/authserver"
+	"github.com/open-uem/openuem-console/internal/controllers/reposerver"
 	"github.com/open-uem/openuem-console/internal/controllers/sessions"
 	"github.com/open-uem/openuem-console/internal/controllers/webserver"
 	"github.com/open-uem/openuem-console/internal/models"
@@ -215,4 +216,13 @@ func (w *Worker) StartConsoleService() {
 		}
 	}()
 	log.Println("[INFO]: auth server is running")
+
+	// HTTPS repo server (Munki/CIMIAN with mandatory mTLS)
+	w.RepoServer = reposerver.New(w.Model, w.CACertPath)
+	go func() {
+		if err := w.RepoServer.Serve(":"+w.RepoPort, w.ConsoleCertPath, w.ConsolePrivateKeyPath); err != http.ErrServerClosed {
+			log.Printf("[ERROR]: the repo server has stopped, reason: %v", err.Error())
+		}
+	}()
+	log.Printf("[INFO]: repo server is running on port %s", w.RepoPort)
 }

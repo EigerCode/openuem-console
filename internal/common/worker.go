@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/open-uem/openuem-console/internal/controllers/authserver"
+	"github.com/open-uem/openuem-console/internal/controllers/reposerver"
 	"github.com/open-uem/openuem-console/internal/controllers/sessions"
 	"github.com/open-uem/openuem-console/internal/controllers/webserver"
 	"github.com/open-uem/openuem-console/internal/models"
@@ -30,9 +31,11 @@ type Worker struct {
 	SessionManager                    *sessions.SessionManager
 	WebServer                         *webserver.WebServer
 	AuthServer                        *authserver.AuthServer
+	RepoServer                        *reposerver.RepoServer
 	DownloadDir                       string
 	ConsolePort                       string
 	AuthPort                          string
+	RepoPort                          string
 	ServerName                        string
 	Domain                            string
 	NATSServers                       string
@@ -135,6 +138,12 @@ func (w *Worker) StopWorker() {
 	if w.AuthServer != nil {
 		if err := w.AuthServer.Close(); err != nil {
 			log.Println("[ERROR]: Error closing the auth server")
+		}
+	}
+
+	if w.RepoServer != nil {
+		if err := w.RepoServer.Close(); err != nil {
+			log.Println("[ERROR]: Error closing the repo server")
 		}
 	}
 

@@ -96,6 +96,13 @@ func (w *Worker) GenerateConsoleConfig() error {
 	}
 	w.AuthPort = key.String()
 
+	key, err = cfg.Section("Console").GetKey("repoport")
+	if err == nil {
+		w.RepoPort = key.String()
+	} else {
+		w.RepoPort = "8443"
+	}
+
 	key, err = cfg.Section("Console").GetKey("domain")
 	if err != nil {
 		return err
