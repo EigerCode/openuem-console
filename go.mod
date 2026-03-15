@@ -1,6 +1,6 @@
 module github.com/open-uem/openuem-console
 
-go 1.25.5
+go 1.26.0
 
 require (
 	entgo.io/ent v0.14.5
@@ -12,6 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.41.3
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.11
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.4
+	github.com/aws/smithy-go v1.24.2
 	github.com/biter777/countries v1.7.5
 	github.com/canidam/echo-scs-session v1.0.0
 	github.com/coreos/go-oidc/v3 v3.16.0
@@ -35,6 +36,7 @@ require (
 	github.com/nats-io/nats.go v1.47.0
 	github.com/open-uem/ent v0.0.0-20260121160055-142eb8d57a27
 	github.com/open-uem/nats v0.0.0-20251220104614-efae26e98557
+	github.com/open-uem/openuem-ansible-config v0.0.0-20250710075757-9ef6e3390073
 	github.com/open-uem/utils v0.0.0-20251221104611-c55d64529212
 	github.com/open-uem/wingetcfg v0.0.0-20251011111407-80e823d91ea5
 	github.com/pkg/sftp v1.13.9
@@ -66,7 +68,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.11 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.19 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.19 // indirect
-	github.com/aws/smithy-go v1.24.2 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/boombuler/barcode v1.1.0 // indirect
@@ -103,7 +104,6 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/nats-io/nkeys v0.4.11 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
-	github.com/open-uem/openuem-ansible-config v0.0.0-20250710075757-9ef6e3390073 // indirect
 	github.com/pdfcpu/pdfcpu v0.11.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -129,8 +129,8 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
-replace github.com/open-uem/ent => ../ent
+replace github.com/open-uem/ent => github.com/EigerCode/ent v0.0.0-20260315160317-935fa4349a42
 
-replace github.com/open-uem/utils => ../utils
+replace github.com/open-uem/utils => github.com/EigerCode/utils v0.0.0-20260315160149-6ab2f61e113c
 
-replace github.com/open-uem/nats => ../nats
+replace github.com/open-uem/nats => github.com/EigerCode/nats v0.0.0-20260315160153-df665ab5a15e
