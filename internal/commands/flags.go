@@ -142,5 +142,16 @@ func StartConsoleFlags() []cli.Flag {
 			EnvVars: []string{"RESET_OPENUEM_USER"},
 			Value:   false,
 		},
+		&cli.StringFlag{
+			Name:    "repo-port",
+			Usage:   "port for the software repo server (Munki/CIMIAN manifests and catalogs)",
+			EnvVars: []string{"REPO_PORT"},
+			Value:   "8443",
+		},
+		&cli.StringFlag{
+			Name:    "repo-cacert",
+			Usage:   "CA certificate for repo server mTLS client validation (defaults to --cacert if not set)",
+			EnvVars: []string{"REPO_CA_CRT_FILENAME"},
+		},
 	}
 }

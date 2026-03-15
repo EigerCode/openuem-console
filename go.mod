@@ -130,3 +130,7 @@ require (
 )
 
 replace github.com/open-uem/ent => ../ent
+
+replace github.com/open-uem/utils => ../utils
+
+replace github.com/open-uem/nats => ../nats

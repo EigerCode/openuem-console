@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"html"
 	"strings"
 
 	sd "github.com/open-uem/openuem-console/internal/common/softwaredeployment"
@@ -79,10 +80,10 @@ func writePlistArray(b *strings.Builder, key string, items []string) {
 	if len(items) == 0 {
 		return
 	}
-	b.WriteString(fmt.Sprintf("\t<key>%s</key>\n", key))
+	fmt.Fprintf(b, "\t<key>%s</key>\n", html.EscapeString(key))
 	b.WriteString("\t<array>\n")
 	for _, item := range items {
-		b.WriteString(fmt.Sprintf("\t\t<string>%s</string>\n", item))
+		fmt.Fprintf(b, "\t\t<string>%s</string>\n", html.EscapeString(item))
 	}
 	b.WriteString("\t</array>\n")
 }

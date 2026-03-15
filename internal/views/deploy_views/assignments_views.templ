@@ -1,0 +1,281 @@
+package deploy_views
+
+import (
+	"fmt"
+	"github.com/invopop/ctxi18n/i18n"
+	"github.com/labstack/echo/v4"
+	"github.com/open-uem/ent"
+	"github.com/open-uem/openuem-console/internal/models"
+	"github.com/open-uem/openuem-console/internal/views/partials"
+)
+
+templ Assignments(c echo.Context, p partials.PaginationAndSort, assignments []*ent.SoftwareAssignment, itemsPerPage int, commonInfo *partials.CommonInfo, successMessage string) {
+	<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "deploy_assignments.title") }</title>
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: i18n.T(ctx, "deploy_assignments.title"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/assignments")))}}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@DeployNavbar("assignments", commonInfo)
+				if successMessage != "" {
+					@partials.SuccessMessage(successMessage)
+				} else {
+					<div id="success" class="hidden"></div>
+				}
+				<div id="error" class="hidden"></div>
+				<div id="confirm" class="hidden"></div>
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<div class="flex items-center justify-between">
+							<div>
+								<h3 class="uk-card-title">{ i18n.T(ctx, "deploy_assignments.title") }</h3>
+								<p class="uk-margin-small-top uk-text-small">
+									{ i18n.T(ctx, "deploy_assignments.description") }
+								</p>
+							</div>
+							<button
+								class="uk-button uk-button-primary flex items-center gap-2"
+								hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/assignments/new"))) }
+								hx-target="#main"
+								hx-swap="outerHTML"
+								hx-push-url="true"
+							>
+								<uk-icon hx-history="false" icon="plus" custom-class="h-5 w-5" uk-cloack></uk-icon>
+								{ i18n.T(ctx, "deploy_assignments.add") }
+							</button>
+						</div>
+					</div>
+					<div class="uk-card-body flex flex-col gap-4">
+						if len(assignments) > 0 {
+							<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped mt-4">
+								<thead>
+									<tr>
+										<th>
+											<span>{ i18n.T(ctx, "deploy_assignments.package") }</span>
+											@partials.SortByColumnIcon(c, p, i18n.T(ctx, "deploy_assignments.package"), "package", "alpha", "#main", "outerHTML", "get")
+										</th>
+										<th>
+											<span>{ i18n.T(ctx, "deploy_assignments.type") }</span>
+											@partials.SortByColumnIcon(c, p, i18n.T(ctx, "deploy_assignments.type"), "assignment_type", "alpha", "#main", "outerHTML", "get")
+										</th>
+										<th>
+											<span>{ i18n.T(ctx, "deploy_assignments.target_type") }</span>
+											@partials.SortByColumnIcon(c, p, i18n.T(ctx, "deploy_assignments.target_type"), "target_type", "alpha", "#main", "outerHTML", "get")
+										</th>
+										<th>{ i18n.T(ctx, "deploy_assignments.target") }</th>
+										<th>{ i18n.T(ctx, "deploy_assignments.active") }</th>
+										<th>{ i18n.T(ctx, "Actions") }</th>
+									</tr>
+								</thead>
+								<tbody>
+									for _, a := range assignments {
+										<tr>
+											<td class="!align-middle">
+												{ a.PackageName }
+												<span class="uk-text-muted uk-text-small ml-1">({ platformLabel(string(a.PackagePlatform)) })</span>
+											</td>
+											<td class="!align-middle">
+												<span class={ "uk-badge", templ.KV("uk-badge-primary", string(a.AssignmentType) == "managed_install"), templ.KV("uk-badge-danger", string(a.AssignmentType) == "managed_uninstall") }>
+													{ string(a.AssignmentType) }
+												</span>
+											</td>
+											<td class="!align-middle capitalize">{ string(a.TargetType) }</td>
+											<td class="!align-middle">{ a.TargetID }</td>
+											<td class="!align-middle">
+												if a.Active {
+													<uk-icon icon="check" custom-class="h-5 w-5 text-green-600" uk-cloack></uk-icon>
+												} else {
+													<uk-icon icon="x" custom-class="h-5 w-5 text-red-600" uk-cloack></uk-icon>
+												}
+											</td>
+											<td class="!align-middle">
+												<div class="flex gap-2">
+													<button
+														class="text-red-600"
+														title={ i18n.T(ctx, "deploy_assignments.delete") }
+														hx-delete={ string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/deploy/assignments/%d", a.ID)))) }
+														hx-target="#main"
+														hx-swap="outerHTML"
+														hx-push-url="false"
+														hx-confirm={ i18n.T(ctx, "deploy_assignments.confirm_delete") }
+													>
+														<uk-icon hx-history="false" icon="trash-2" custom-class="h-5 w-5" uk-cloack></uk-icon>
+													</button>
+												</div>
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+							@partials.Pagination(c, p, "get", "#main", "outerHTML", string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/assignments"))), itemsPerPage)
+						} else {
+							<p class="uk-text-small uk-text-muted mt-4">
+								{ i18n.T(ctx, "deploy_assignments.no_assignments") }
+							</p>
+						}
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+templ AssignmentForm(c echo.Context, packages []models.PackageGroup, sites []*ent.Site, tags []*ent.Tag, commonInfo *partials.CommonInfo, errMessage string) {
+	<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "deploy_assignments.add") }</title>
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: i18n.T(ctx, "deploy_assignments.title"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/assignments")))}, {Title: i18n.T(ctx, "deploy_assignments.add"), Url: ""}}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@DeployNavbar("assignments", commonInfo)
+				<div id="success" class="hidden"></div>
+				if errMessage != "" {
+					@partials.ErrorMessage(errMessage, true)
+				} else {
+					<div id="error" class="hidden"></div>
+				}
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "deploy_assignments.add") }</h3>
+						<p class="uk-margin-small-top uk-text-small">
+							{ i18n.T(ctx, "deploy_assignments.form_description") }
+						</p>
+					</div>
+					<div class="uk-card-body">
+						<form class="flex flex-col mt-4 gap-4 w-2/3">
+							<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped mt-4">
+								<tr>
+									<td class="!align-middle w-1/4">{ i18n.T(ctx, "deploy_assignments.package") } *</td>
+									<td class="!align-middle">
+										<input
+											class="uk-input"
+											name="assignment-package"
+											list="package-list"
+											required
+											placeholder={ i18n.T(ctx, "deploy_assignments.search_package") }
+											spellcheck="false"
+											autocomplete="off"
+										/>
+										<datalist id="package-list">
+											for _, pkg := range packages {
+												<option value={ fmt.Sprintf("%s|%s", pkg.Name, pkg.Platform) }>
+													{ pkg.Name } ({ platformLabel(pkg.Platform) })
+												</option>
+											}
+										</datalist>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "deploy_assignments.type") } *</td>
+									<td class="!align-middle">
+										<select class="uk-select" name="assignment-type" required>
+											<option value="managed_install">Managed Install</option>
+											<option value="managed_uninstall">Managed Uninstall</option>
+											<option value="optional_install">Optional Install</option>
+											<option value="managed_update">Managed Update</option>
+										</select>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "deploy_assignments.target_type") } *</td>
+									<td class="!align-middle">
+										<select
+											class="uk-select"
+											name="assignment-target-type"
+											required
+											_="on change
+												if my value is 'site' then
+													remove .hidden from #target-site
+													add .hidden to #target-tag
+													add .hidden to #target-agent
+												else if my value is 'tag' then
+													add .hidden to #target-site
+													remove .hidden from #target-tag
+													add .hidden to #target-agent
+												else
+													add .hidden to #target-site
+													add .hidden to #target-tag
+													remove .hidden from #target-agent
+												end
+											end"
+										>
+											<option value="site">Site</option>
+											<option value="tag">Tag</option>
+											<option value="agent">Agent</option>
+										</select>
+									</td>
+								</tr>
+								<tr id="target-site">
+									<td class="!align-middle">Site</td>
+									<td class="!align-middle">
+										<input
+											class="uk-input"
+											name="assignment-target-site"
+											list="site-list"
+											placeholder={ i18n.T(ctx, "deploy_assignments.search_site") }
+											spellcheck="false"
+											autocomplete="off"
+										/>
+										<datalist id="site-list">
+											for _, site := range sites {
+												<option value={ fmt.Sprintf("%d|%s", site.ID, site.Description) }>
+													{ site.Description }
+												</option>
+											}
+										</datalist>
+									</td>
+								</tr>
+								<tr id="target-tag" class="hidden">
+									<td class="!align-middle">Tag</td>
+									<td class="!align-middle">
+										<input
+											class="uk-input"
+											name="assignment-target-tag"
+											list="tag-list"
+											placeholder={ i18n.T(ctx, "deploy_assignments.search_tag") }
+											spellcheck="false"
+											autocomplete="off"
+										/>
+										<datalist id="tag-list">
+											for _, tag := range tags {
+												<option value={ fmt.Sprintf("%d|%s", tag.ID, tag.Tag) }>
+													{ tag.Tag }
+												</option>
+											}
+										</datalist>
+									</td>
+								</tr>
+								<tr id="target-agent" class="hidden">
+									<td class="!align-middle">Agent ID</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="text" name="assignment-target-agent" placeholder="Agent UUID" spellcheck="false" autocomplete="off"/>
+									</td>
+								</tr>
+							</table>
+							<div class="flex flex-row-reverse gap-2">
+								<button
+									hx-post={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/assignments"))) }
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-push-url="false"
+									type="submit"
+									class="uk-button uk-button-primary"
+								>
+									{ i18n.T(ctx, "deploy_assignments.save") }
+								</button>
+								<button
+									hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/assignments"))) }
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-push-url="true"
+									type="button"
+									class="uk-button uk-button-default"
+								>
+									{ i18n.T(ctx, "Cancel") }
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}

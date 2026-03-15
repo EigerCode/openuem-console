@@ -141,22 +141,28 @@ func (m *Model) CountAllTags(c *partials.CommonInfo) (int, error) {
 	return m.Client.Tag.Query().Where(tag.HasTenantWith(tenant.ID(tenantID))).Count(context.Background())
 }
 
-func (m *Model) NewTag(title, description, color string, c *partials.CommonInfo) error {
+func (m *Model) NewTag(title, description, color, catalogRing string, c *partials.CommonInfo) error {
 	tenantID, err := strconv.Atoi(c.TenantID)
 	if err != nil {
 		return err
 	}
 
-	return m.Client.Tag.Create().SetTag(title).SetDescription(description).SetColor(color).SetTenantID(tenantID).Exec(context.Background())
+	if catalogRing == "" {
+		catalogRing = "broad"
+	}
+	return m.Client.Tag.Create().SetTag(title).SetDescription(description).SetColor(color).SetCatalogRing(catalogRing).SetTenantID(tenantID).Exec(context.Background())
 }
 
-func (m *Model) UpdateTag(tagId int, title, description, color string, c *partials.CommonInfo) error {
+func (m *Model) UpdateTag(tagId int, title, description, color, catalogRing string, c *partials.CommonInfo) error {
 	tenantID, err := strconv.Atoi(c.TenantID)
 	if err != nil {
 		return err
 	}
 
-	return m.Client.Tag.Update().SetTag(title).SetDescription(description).SetColor(color).Where(tag.ID(tagId), tag.HasTenantWith(tenant.ID(tenantID))).Exec(context.Background())
+	if catalogRing == "" {
+		catalogRing = "broad"
+	}
+	return m.Client.Tag.Update().SetTag(title).SetDescription(description).SetColor(color).SetCatalogRing(catalogRing).Where(tag.ID(tagId), tag.HasTenantWith(tenant.ID(tenantID))).Exec(context.Background())
 }
 
 func (m *Model) DeleteTag(tagId int, c *partials.CommonInfo) error {

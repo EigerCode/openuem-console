@@ -56,6 +56,14 @@ func (w *Worker) GenerateConsoleConfigFromCLI(cCtx *cli.Context) error {
 	w.ReenableCertAuth = cCtx.Bool("re-enable-certificates-auth")
 	w.ReenablePasswdAuth = cCtx.Bool("re-enable-passwd-auth")
 	w.ResetOpenUEMUser = cCtx.Bool("reset-openuem-user")
+	w.RepoPort = cCtx.String("repo-port")
+	if w.RepoPort == "" {
+		w.RepoPort = "8443"
+	}
+	w.RepoCACertPath = cCtx.String("repo-cacert")
+	if w.RepoCACertPath == "" {
+		w.RepoCACertPath = w.CACertPath
+	}
 	w.Version = "0.11.0"
 
 	return nil

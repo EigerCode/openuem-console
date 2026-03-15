@@ -891,7 +891,7 @@ func (m *Model) GetAllUpdateAgents(f filters.UpdateAgentsFilter, c *partials.Com
 	return agents, nil
 }
 
-func (m *Model) SaveAgentSettings(agentID string, settings openuem_nats.AgentSetting, c *partials.CommonInfo) (*ent.Agent, error) {
+func (m *Model) SaveAgentSettings(agentID string, settings openuem_nats.AgentSetting, catalogRing string, c *partials.CommonInfo) (*ent.Agent, error) {
 	siteID, err := strconv.Atoi(c.SiteID)
 	if err != nil {
 		return nil, err
@@ -901,11 +901,22 @@ func (m *Model) SaveAgentSettings(agentID string, settings openuem_nats.AgentSet
 		return nil, err
 	}
 
+	var query *ent.AgentUpdateOne
 	if siteID == -1 {
-		return m.Client.Agent.UpdateOneID(agentID).Where(agent.HasSiteWith(site.HasTenantWith(tenant.ID(tenantID)))).SetDebugMode(settings.DebugMode).SetSftpPort(settings.SFTPPort).SetSftpService(settings.SFTPService).SetRemoteAssistance(settings.RemoteAssistance).SetVncProxyPort(settings.VNCProxyPort).SetSettingsModified(time.Now()).Save(context.Background())
+		query = m.Client.Agent.UpdateOneID(agentID).Where(agent.HasSiteWith(site.HasTenantWith(tenant.ID(tenantID))))
 	} else {
-		return m.Client.Agent.UpdateOneID(agentID).Where(agent.HasSiteWith(site.ID(siteID), site.HasTenantWith(tenant.ID(tenantID)))).SetDebugMode(settings.DebugMode).SetSftpPort(settings.SFTPPort).SetSftpService(settings.SFTPService).SetRemoteAssistance(settings.RemoteAssistance).SetVncProxyPort(settings.VNCProxyPort).SetSettingsModified(time.Now()).Save(context.Background())
+		query = m.Client.Agent.UpdateOneID(agentID).Where(agent.HasSiteWith(site.ID(siteID), site.HasTenantWith(tenant.ID(tenantID))))
 	}
+
+	query.SetDebugMode(settings.DebugMode).SetSftpPort(settings.SFTPPort).SetSftpService(settings.SFTPService).SetRemoteAssistance(settings.RemoteAssistance).SetVncProxyPort(settings.VNCProxyPort).SetSettingsModified(time.Now())
+
+	if catalogRing != "" {
+		query.SetCatalogRing(catalogRing)
+	} else {
+		query.ClearCatalogRing()
+	}
+
+	return query.Save(context.Background())
 }
 
 func applyUpdateAgentsFilters(query *ent.AgentQuery, f filters.UpdateAgentsFilter) {

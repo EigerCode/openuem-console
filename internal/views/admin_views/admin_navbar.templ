@@ -260,6 +260,25 @@ templ ConfigNavbar(active string, agentsExists, serversExists bool, commonInfo *
 				</a>
 			</li>
 		}
+		<li class={ templ.KV("uk-active", active == "software-repos") }>
+			<a
+				if commonInfo.TenantID != "-1" {
+					href={ templ.URL(fmt.Sprintf("/tenant/%s/admin/software-repos", commonInfo.TenantID)) }
+					hx-get={ string(templ.URL(fmt.Sprintf("/tenant/%s/admin/software-repos", commonInfo.TenantID))) }
+				} else {
+					href="/admin/software-repos"
+					hx-get="/admin/software-repos"
+				}
+				hx-push-url="true"
+				hx-target="#main"
+				hx-swap="outerHTML"
+				hx-indicator="#admin-software-repos-spinner"
+				class="flex items-center gap-1"
+			>
+				<uk-icon id="admin-software-repos-spinner" hx-history="false" icon="loader-circle" custom-class="htmx-indicator h-4 w-4 animate-spin" uk-cloack></uk-icon>
+				{ i18n.T(ctx, "software_repos.title") }
+			</a>
+		</li>
 		<li class={ templ.KV("uk-active", active == "settings") }>
 			<a
 				if commonInfo.TenantID != "-1" {

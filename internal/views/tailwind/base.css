@@ -27,3 +27,13 @@
 .markdown-body menu {
     list-style: inherit;
 }
+
+@keyframes indeterminate {
+    0% { transform: translateX(-100%); width: 40%; }
+    50% { transform: translateX(100%); width: 60%; }
+    100% { transform: translateX(300%); width: 40%; }
+}
+
+.animate-indeterminate {
+    animation: indeterminate 1.5s ease-in-out infinite;
+}

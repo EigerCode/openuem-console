@@ -155,7 +155,7 @@ func (suite *TagsTestSuite) TestCountAllTags() {
 }
 
 func (suite *TagsTestSuite) TestNewTag() {
-	err := suite.model.NewTag("Tag8", "My tag 8", "#f8f8f8", suite.commonInfo)
+	err := suite.model.NewTag("Tag8", "My tag 8", "#f8f8f8", "", suite.commonInfo)
 	assert.NoError(suite.T(), err, "should create a new tags")
 
 	count, err := suite.model.CountAllTags(suite.commonInfo)
@@ -171,7 +171,7 @@ func (suite *TagsTestSuite) TestNewTag() {
 }
 
 func (suite *TagsTestSuite) TestUpdateTag() {
-	err := suite.model.UpdateTag(suite.tagId, "Tag8", "My tag 8", "#f8f8f8", suite.commonInfo)
+	err := suite.model.UpdateTag(suite.tagId, "Tag8", "My tag 8", "#f8f8f8", "", suite.commonInfo)
 	assert.NoError(suite.T(), err, "should update a tag")
 
 	tags, err := suite.model.GetAllTags(suite.commonInfo, filters.AgentFilter{})

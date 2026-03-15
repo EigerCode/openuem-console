@@ -21,6 +21,7 @@ type Worker struct {
 	TaskScheduler                     gocron.Scheduler
 	DBUrl                             string
 	CACertPath                        string
+	RepoCACertPath                    string
 	ConsoleCertPath                   string
 	ConsolePrivateKeyPath             string
 	SFTPPrivateKeyPath                string

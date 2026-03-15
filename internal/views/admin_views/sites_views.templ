@@ -292,6 +292,18 @@ templ NewSite(c echo.Context, defaultCountry string, agentsExists, serversExists
 											/>
 										</div>
 									</div>
+									<div class="uk-margin">
+										<label class="uk-form-label">{ i18n.T(ctx, "sites.catalog_ring") }</label>
+										<div class="uk-form-controls">
+											<select name="catalog-ring" class="uk-select">
+												<option value="" selected>{ i18n.T(ctx, "sites.ring_default_broad") }</option>
+												<option value="test">test</option>
+												<option value="first">first</option>
+												<option value="fast">fast</option>
+												<option value="broad">broad</option>
+											</select>
+										</div>
+									</div>
 								</fieldset>
 							</div>
 							<div class="flex gap-4">
@@ -374,6 +386,18 @@ templ EditSite(c echo.Context, s *ent.Site, defaultCountry string, agentsExists,
 												value={ s.Domain }
 												placeholder={ i18n.T(ctx, "sites.domain_optional") + "..." }
 											/>
+										</div>
+									</div>
+									<div class="uk-margin">
+										<label class="uk-form-label">{ i18n.T(ctx, "sites.catalog_ring") }</label>
+										<div class="uk-form-controls">
+											<select name="catalog-ring" class="uk-select">
+												<option value="" selected?={ s.CatalogRing == nil }>{ i18n.T(ctx, "sites.ring_default_broad") }</option>
+												<option value="test" selected?={ s.CatalogRing != nil && *s.CatalogRing == "test" }>test</option>
+												<option value="first" selected?={ s.CatalogRing != nil && *s.CatalogRing == "first" }>first</option>
+												<option value="fast" selected?={ s.CatalogRing != nil && *s.CatalogRing == "fast" }>fast</option>
+												<option value="broad" selected?={ s.CatalogRing != nil && *s.CatalogRing == "broad" }>broad</option>
+											</select>
 										</div>
 									</div>
 								</fieldset>

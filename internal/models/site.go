@@ -159,7 +159,7 @@ func applySitesFilter(query *ent.SiteQuery, f filters.SiteFilter) {
 	}
 }
 
-func (m *Model) AddSite(tenantID int, name string, isDefault bool, domain string) error {
+func (m *Model) AddSite(tenantID int, name string, isDefault bool, domain string, catalogRing string) error {
 	if isDefault {
 		// Remove the is default property for existing sites
 		if err := m.Client.Site.Update().Where(site.HasTenantWith(tenant.ID(tenantID))).SetIsDefault(false).Exec(context.Background()); err != nil {
@@ -167,12 +167,22 @@ func (m *Model) AddSite(tenantID int, name string, isDefault bool, domain string
 		}
 	}
 
-	return m.Client.Site.Create().SetDescription(name).SetIsDefault(isDefault).SetDomain(domain).SetTenantID(tenantID).Exec(context.Background())
+	creator := m.Client.Site.Create().SetDescription(name).SetIsDefault(isDefault).SetDomain(domain).SetTenantID(tenantID)
+	if catalogRing != "" {
+		creator = creator.SetCatalogRing(catalogRing)
+	}
+	return creator.Exec(context.Background())
 }
 
-func (m *Model) UpdateSite(tenantID int, siteID int, desc string, domain string, isDefault bool) error {
+func (m *Model) UpdateSite(tenantID int, siteID int, desc string, domain string, isDefault bool, catalogRing string) error {
 
 	query := m.Client.Site.Update().Where(site.ID(siteID), site.HasTenantWith(tenant.ID(tenantID))).SetDescription(desc).SetDomain(domain)
+
+	if catalogRing != "" {
+		query = query.SetCatalogRing(catalogRing)
+	} else {
+		query = query.ClearCatalogRing()
+	}
 
 	if isDefault {
 		if err := m.Client.Site.Update().Where(site.Not(site.ID(siteID)), site.HasTenantWith(tenant.ID(tenantID))).SetIsDefault(false).Exec(context.Background()); err != nil {

@@ -1,0 +1,273 @@
+package computers_views
+
+import (
+	"fmt"
+	"strings"
+	"github.com/invopop/ctxi18n/i18n"
+	"github.com/labstack/echo/v4"
+	"github.com/open-uem/ent"
+	"github.com/open-uem/openuem-console/internal/views/partials"
+)
+
+templ ManagedSoftware(c echo.Context, agent *ent.Agent, assignments []*ent.SoftwareAssignment, packageMap map[string]*ent.SoftwarePackage, statusLogs []*ent.SoftwareInstallLog, errorLogs []*ent.SoftwareInstallLog, effectiveCatalog string, confirmDelete bool, commonInfo *partials.CommonInfo, netbird, offline bool) {
+	@partials.ComputerBreadcrumb(c, agent, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@partials.ComputerHeader(partials.PaginationAndSort{}, agent, commonInfo, offline)
+				@ComputersNavbar(agent.ID, "managed-software", agent.VncProxyPort, confirmDelete, commonInfo, agent.Os, netbird)
+				if confirmDelete {
+					@partials.ConfirmDeleteAgent(c, i18n.T(ctx, "agents.confirm_delete"), string(templ.URL(partials.GetNavigationUrl(commonInfo, "/computers"))), string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/computers/%s", agent.ID)))))
+				}
+				<div id="error" class="hidden"></div>
+				<div id="success" class="hidden"></div>
+				<!-- Software Status Card -->
+				<div class="uk-card uk-card-default">
+					<div class="uk-card-header">
+						<div class="flex items-center justify-between">
+							<div class="flex items-center gap-2">
+								<uk-icon hx-history="false" icon="package-check" custom-class="h-5 w-5" uk-cloack></uk-icon>
+								<h3 class="uk-card-title">{ i18n.T(ctx, "managed_software.software_status") }</h3>
+							</div>
+							<div class="flex items-center gap-3">
+								if effectiveCatalog != "" {
+									<span class="uk-text-small uk-text-muted">{ i18n.T(ctx, "managed_software.catalog") }:</span>
+									<span class="uk-badge bg-blue-600 text-white capitalize">{ effectiveCatalog }</span>
+								}
+								<button
+									class="uk-button uk-button-default uk-button-small"
+									hx-post={ string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/computers/%s/managed-software/check", agent.ID)))) }
+									hx-swap="outerHTML"
+									hx-target="#success"
+									hx-indicator="this"
+								>
+									<uk-icon hx-history="false" icon="refresh-cw" custom-class="h-4 w-4 mr-1" uk-cloack></uk-icon>
+									{ i18n.T(ctx, "managed_software.check_for_software") }
+								</button>
+							</div>
+						</div>
+						<p class="uk-margin-small-top uk-text-small uk-text-muted">
+							{ i18n.T(ctx, "managed_software.last_checked") }: { lastCheckedTime(statusLogs, i18n.T(ctx, "managed_software.never_checked")) }
+						</p>
+					</div>
+					<div class="uk-card-body">
+						if len(assignments) == 0 && len(statusLogs) == 0 {
+							<p class="uk-text-muted">{ i18n.T(ctx, "managed_software.no_status") }</p>
+						} else {
+							<div class="uk-overflow-auto">
+								<table class="uk-table uk-table-divider uk-table-hover uk-table-small">
+									<thead>
+										<tr>
+											<th>{ i18n.T(ctx, "managed_software.package") }</th>
+											<th>{ i18n.T(ctx, "managed_software.assignment_type") }</th>
+											<th>{ i18n.T(ctx, "managed_software.status") }</th>
+											<th>{ i18n.T(ctx, "managed_software.version") }</th>
+										</tr>
+									</thead>
+									<tbody>
+										for _, a := range assignments {
+											<tr class={ templ.KV("opacity-50", !isInCatalog(a, packageMap)) }>
+												<td class="!align-middle">
+													<div class="flex items-center gap-2">
+														@assignmentIcon(a, packageMap, commonInfo)
+														<span>{ assignmentDisplayName(a, packageMap) }</span>
+													</div>
+												</td>
+												<td class="!align-middle">
+													@ManagedSoftwareAssignmentTypeBadge(string(a.AssignmentType))
+												</td>
+												<td class="!align-middle">
+													@assignmentStatusBadge(a, statusLogs)
+												</td>
+												<td class="!align-middle">
+													{ assignmentVersion(a, packageMap, statusLogs) }
+												</td>
+											</tr>
+										}
+									</tbody>
+								</table>
+							</div>
+						}
+					</div>
+				</div>
+				<!-- Errors & Warnings Card -->
+				if len(errorLogs) > 0 {
+					<div class="uk-card uk-card-default">
+						<div class="uk-card-header">
+							<div class="flex items-center gap-2">
+								<uk-icon hx-history="false" icon="alert-triangle" custom-class="h-5 w-5 text-red-500" uk-cloack></uk-icon>
+								<h3 class="uk-card-title">{ i18n.T(ctx, "managed_software.errors_warnings") }</h3>
+							</div>
+							<p class="uk-margin-small-top uk-text-small">{ i18n.T(ctx, "managed_software.errors_warnings_description") }</p>
+						</div>
+						<div class="uk-card-body">
+							<div class="uk-overflow-auto">
+								<table class="uk-table uk-table-divider uk-table-hover uk-table-small">
+									<thead>
+										<tr>
+											<th>{ i18n.T(ctx, "managed_software.package") }</th>
+											<th>{ i18n.T(ctx, "managed_software.action") }</th>
+											<th>{ i18n.T(ctx, "managed_software.message") }</th>
+										</tr>
+									</thead>
+									<tbody>
+										for _, l := range errorLogs {
+											<tr>
+												<td class="!align-middle">
+													<div class="flex items-center gap-2">
+														@errorLogIcon(l, commonInfo)
+														<span>{ errorLogDisplayName(l) }</span>
+													</div>
+												</td>
+												<td class="!align-middle">
+													@ManagedSoftwareActionBadge(string(l.Action))
+												</td>
+												<td class="!align-middle">
+													if l.ErrorMessage != "" {
+														<span class="uk-text-danger uk-text-small">{ l.ErrorMessage }</span>
+													}
+												</td>
+											</tr>
+										}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+	</main>
+}
+
+// assignmentIcon renders the package icon for an assignment.
+templ assignmentIcon(a *ent.SoftwareAssignment, packageMap map[string]*ent.SoftwarePackage, commonInfo *partials.CommonInfo) {
+	{{ pkg := packageMap[a.PackageName] }}
+	<div class="flex items-center justify-center w-6 h-6">
+		if pkg != nil && pkg.IconName != "" {
+			<img src={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages/icon/" + pkg.IconName))) } class="w-6 h-6 object-contain" alt={ assignmentDisplayName(a, packageMap) }/>
+		} else {
+			@partials.Brand(strings.ToLower(assignmentDisplayName(a, packageMap)), "")
+		}
+	</div>
+}
+
+// errorLogIcon renders the package icon for an error log entry.
+templ errorLogIcon(l *ent.SoftwareInstallLog, commonInfo *partials.CommonInfo) {
+	<div class="flex items-center justify-center w-6 h-6">
+		if l.Edges.Package != nil && l.Edges.Package.IconName != "" {
+			<img src={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages/icon/" + l.Edges.Package.IconName))) } class="w-6 h-6 object-contain" alt={ errorLogDisplayName(l) }/>
+		} else {
+			@partials.Brand(strings.ToLower(errorLogDisplayName(l)), "")
+		}
+	</div>
+}
+
+// assignmentStatusBadge finds the matching status log for an assignment and renders the appropriate badge.
+templ assignmentStatusBadge(a *ent.SoftwareAssignment, statusLogs []*ent.SoftwareInstallLog) {
+	{{ log := findStatusLog(a, statusLogs) }}
+	if log != nil {
+		@ManagedSoftwareStatusBadge(string(log.Status))
+	} else {
+		<span class="uk-badge uk-badge-secondary">—</span>
+	}
+}
+
+// findStatusLog finds the latest install log matching an assignment's package name.
+func findStatusLog(a *ent.SoftwareAssignment, statusLogs []*ent.SoftwareInstallLog) *ent.SoftwareInstallLog {
+	for _, l := range statusLogs {
+		if l.Edges.Package != nil && l.Edges.Package.Name == a.PackageName {
+			return l
+		}
+	}
+	return nil
+}
+
+func isInCatalog(a *ent.SoftwareAssignment, packageMap map[string]*ent.SoftwarePackage) bool {
+	_, ok := packageMap[a.PackageName]
+	return ok
+}
+
+func assignmentDisplayName(a *ent.SoftwareAssignment, packageMap map[string]*ent.SoftwarePackage) string {
+	if pkg, ok := packageMap[a.PackageName]; ok && pkg.DisplayName != "" {
+		return pkg.DisplayName
+	}
+	return a.PackageName
+}
+
+func assignmentVersion(a *ent.SoftwareAssignment, packageMap map[string]*ent.SoftwarePackage, statusLogs []*ent.SoftwareInstallLog) string {
+	log := findStatusLog(a, statusLogs)
+	if log != nil && log.InstalledVersion != "" {
+		return log.InstalledVersion
+	}
+	if pkg, ok := packageMap[a.PackageName]; ok && pkg.Version != "" {
+		return pkg.Version
+	}
+	return "—"
+}
+
+func errorLogDisplayName(l *ent.SoftwareInstallLog) string {
+	if l.Edges.Package != nil && l.Edges.Package.DisplayName != "" {
+		return l.Edges.Package.DisplayName
+	}
+	if l.Edges.Package != nil {
+		return l.Edges.Package.Name
+	}
+	return "—"
+}
+
+func lastCheckedTime(statusLogs []*ent.SoftwareInstallLog, neverLabel string) string {
+	if len(statusLogs) == 0 {
+		return neverLabel
+	}
+	latest := statusLogs[0].Created
+	for _, l := range statusLogs[1:] {
+		if l.Created.After(latest) {
+			latest = l.Created
+		}
+	}
+	return latest.Format("2006-01-02 15:04")
+}
+
+templ ManagedSoftwareStatusBadge(status string) {
+	switch status {
+		case "success":
+			<span class="uk-badge bg-green-600 text-white">installed</span>
+		case "failed":
+			<span class="uk-badge uk-badge-danger">failed</span>
+		case "pending":
+			<span class="uk-badge uk-badge-warning">pending</span>
+		case "downloading", "installing":
+			<span class="uk-badge bg-blue-600 text-white">{ status }</span>
+		default:
+			<span class="uk-badge">{ status }</span>
+	}
+}
+
+templ ManagedSoftwareActionBadge(action string) {
+	switch action {
+		case "install":
+			<span class="uk-badge bg-blue-600 text-white">{ action }</span>
+		case "uninstall":
+			<span class="uk-badge uk-badge-danger">{ action }</span>
+		case "update":
+			<span class="uk-badge uk-badge-warning">{ action }</span>
+		default:
+			<span class="uk-badge">{ action }</span>
+	}
+}
+
+templ ManagedSoftwareAssignmentTypeBadge(assignmentType string) {
+	switch assignmentType {
+		case "managed_install":
+			<span class="uk-badge bg-blue-600 text-white">managed install</span>
+		case "managed_uninstall":
+			<span class="uk-badge uk-badge-danger">managed uninstall</span>
+		case "optional_install":
+			<span class="uk-badge uk-badge-secondary">optional install</span>
+		case "managed_update":
+			<span class="uk-badge uk-badge-warning">managed update</span>
+		default:
+			<span class="uk-badge">{ assignmentType }</span>
+	}
+}

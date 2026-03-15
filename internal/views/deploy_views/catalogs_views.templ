@@ -1,0 +1,91 @@
+package deploy_views
+
+import (
+	"fmt"
+	"github.com/invopop/ctxi18n/i18n"
+	"github.com/labstack/echo/v4"
+	"github.com/open-uem/ent"
+	"github.com/open-uem/openuem-console/internal/views/partials"
+	"strconv"
+)
+
+templ Catalogs(c echo.Context, catalogs []*ent.SoftwareCatalog, commonInfo *partials.CommonInfo, successMessage string) {
+	<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "deploy_catalogs.title") }</title>
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: i18n.T(ctx, "deploy_catalogs.title"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/catalogs")))}}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@DeployNavbar("catalogs", commonInfo)
+				if successMessage != "" {
+					@partials.SuccessMessage(successMessage)
+				} else {
+					<div id="success" class="hidden"></div>
+				}
+				<div id="error" class="hidden"></div>
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "deploy_catalogs.title") }</h3>
+						<p class="uk-margin-small-top uk-text-small">
+							{ i18n.T(ctx, "deploy_catalogs.description") }
+						</p>
+					</div>
+					<div class="uk-card-body flex flex-col gap-4">
+						if len(catalogs) > 0 {
+							<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+								for _, cat := range catalogs {
+									<div class="uk-card uk-card-default uk-card-hover">
+										<div class="uk-card-header">
+											<h4 class="uk-card-title capitalize">{ cat.Name }</h4>
+											<p class="uk-text-small uk-text-muted">
+												{ i18n.T(ctx, "deploy_catalogs.ring") } { strconv.Itoa(cat.RingOrder) }
+											</p>
+										</div>
+										<div class="uk-card-body">
+											if pkgs := cat.Edges.Packages; len(pkgs) > 0 {
+												<p class="uk-text-bold">{ strconv.Itoa(len(pkgs)) } { i18n.T(ctx, "deploy_catalogs.packages_count") }</p>
+												<ul class="uk-list uk-list-bullet uk-text-small mt-2">
+													for _, pkg := range pkgs {
+														<li>{ pkg.Name } { pkg.Version }</li>
+													}
+												</ul>
+											} else {
+												<p class="uk-text-small uk-text-muted">{ i18n.T(ctx, "deploy_catalogs.no_packages") }</p>
+											}
+										</div>
+										<div class="uk-card-footer">
+											if cat.RingOrder < 3 {
+												<button
+													class="uk-button uk-button-default uk-button-small flex items-center gap-1"
+													hx-post={ string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/deploy/catalogs/%d/promote", cat.ID)))) }
+													hx-target="#main"
+													hx-swap="outerHTML"
+													hx-push-url="false"
+												>
+													<uk-icon hx-history="false" icon="arrow-right" custom-class="h-4 w-4" uk-cloack></uk-icon>
+													{ i18n.T(ctx, "deploy_catalogs.promote") }
+												</button>
+											}
+										</div>
+									</div>
+								}
+							</div>
+						} else {
+							<p class="uk-text-small uk-text-muted mt-4">
+								{ i18n.T(ctx, "deploy_catalogs.no_catalogs") }
+							</p>
+							<button
+								class="uk-button uk-button-primary mt-2"
+								hx-post={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/catalogs/init"))) }
+								hx-target="#main"
+								hx-swap="outerHTML"
+								hx-push-url="false"
+							>
+								{ i18n.T(ctx, "deploy_catalogs.initialize") }
+							</button>
+						}
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}

@@ -29,8 +29,17 @@ func (h *Handler) Register(e *echo.Echo) {
 	// Manifests — dynamic per serial number
 	repo.GET("/manifests/:serial", h.GetManifest)
 
-	// Catalogs — dynamic per ring (test, first, fast, broad)
-	repo.GET("/catalogs/:ring", h.GetCatalog)
+	// Catalogs — dynamic per catalog name
+	repo.GET("/catalogs/:catalog", h.GetCatalog)
+
+	// Package downloads — redirects to pre-signed S3 URL
+	repo.GET("/pkgs/*", h.GetPkg)
+
+	// Package info — individual package metadata (plist/yaml)
+	repo.GET("/pkgsinfo/*", h.GetPkgsInfo)
+
+	// Icons — app icons for Managed Software Center
+	repo.GET("/icons/*", h.GetIcon)
 
 	// Health check
 	repo.GET("/health", h.HealthCheck)

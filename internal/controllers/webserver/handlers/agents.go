@@ -403,6 +403,7 @@ func (h *Handler) AgentsAdmit(c echo.Context) error {
 					Address:      h.OrgAddress,
 					Country:      h.Country,
 					YearsValid:   2,
+					TenantID:     commonInfo.TenantID,
 				})
 				if err != nil {
 					log.Println("[ERROR]: ", err.Error())
@@ -652,6 +653,7 @@ func (h *Handler) AgentConfirmAdmission(c echo.Context, regenerate bool) error {
 		Address:      h.OrgAddress,
 		Country:      h.Country,
 		YearsValid:   2,
+		TenantID:     commonInfo.TenantID,
 	})
 	if err != nil {
 		return RenderError(c, partials.ErrorMessage(err.Error(), false))
@@ -911,6 +913,8 @@ func (h *Handler) AgentSettings(c echo.Context) error {
 			}
 		}
 
+		catalogRing := c.FormValue("catalog-ring")
+
 		data, err := json.Marshal(s)
 		if err != nil {
 			return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "agents.settings_data_error"), true))
@@ -925,7 +929,7 @@ func (h *Handler) AgentSettings(c echo.Context) error {
 			return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "agents.settings_nats_error", err.Error()), true))
 		}
 
-		a, err := h.Model.SaveAgentSettings(agentId, s, commonInfo)
+		a, err := h.Model.SaveAgentSettings(agentId, s, catalogRing, commonInfo)
 		if err != nil {
 			errMessage := err.Error()
 			// Rollback

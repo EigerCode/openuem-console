@@ -31,10 +31,13 @@ func (h *Handler) TagManager(c echo.Context) error {
 		tag := c.FormValue("tag")
 		description := c.FormValue("description")
 		color := c.FormValue("color")
+		catalogRing := c.FormValue("catalog-ring")
+
+		log.Printf("[DEBUG] TagManager POST: tag=%q, color=%q, catalogRing=%q, tagId=%q", tag, color, catalogRing, tagId)
 
 		if tag != "" && color != "" {
 			if tagId == "" {
-				if err := h.Model.NewTag(tag, description, color, commonInfo); err != nil {
+				if err := h.Model.NewTag(tag, description, color, catalogRing, commonInfo); err != nil {
 					return RenderError(c, partials.ErrorMessage(err.Error(), false))
 				}
 			} else {
@@ -42,7 +45,7 @@ func (h *Handler) TagManager(c echo.Context) error {
 				if err != nil {
 					return RenderError(c, partials.ErrorMessage(err.Error(), false))
 				}
-				if err := h.Model.UpdateTag(id, tag, description, color, commonInfo); err != nil {
+				if err := h.Model.UpdateTag(id, tag, description, color, catalogRing, commonInfo); err != nil {
 					return RenderError(c, partials.ErrorMessage(err.Error(), false))
 				}
 			}

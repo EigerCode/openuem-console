@@ -89,14 +89,15 @@ templ Tags(c echo.Context, p partials.PaginationAndSort, tags []*ent.Tag, agents
 											<button
 												title="edit tag"
 												type="button"
-												_={ fmt.Sprintf(`on click 
+												_={ fmt.Sprintf(`on click
                                                     remove .hidden from #edit-tag-dialog
                                                     set #edit-tag.value to "%d"
                                                     set #edit-tag-name.value to "%s"
                                                     set #edit-tag-description.value to "%s"
 													set #edit-tag-color.value to "%s"
 													put 'rounded-full px-5 py-1 text-white inline-block bg-%s-500' into #edit-tag-example@class
-                                                end`, tag.ID, tag.Tag, tag.Description, tag.Color, tag.Color) }
+													set #edit-tag-ring.value to "%s"
+                                                end`, tag.ID, tag.Tag, tag.Description, tag.Color, tag.Color, TagCatalogRing(tag)) }
 											>
 												<uk-icon hx-history="false" icon="pencil" custom-class="h-5 w-5" uk-cloack></uk-icon>
 											</button>
@@ -167,6 +168,12 @@ templ NewTag(commonInfo *partials.CommonInfo) {
 		<input name="tag" class="uk-input w-1/3" type="text" placeholder={ i18n.T(ctx, "tags.new") } spellcheck="false"/>
 		<input name="description" class="uk-input w-2/3" type="text" placeholder={ i18n.T(ctx, "tags.optional_description") } spellcheck="false"/>
 		@ColorSelector("new")
+		<select name="catalog-ring" class="uk-select" title={ i18n.T(ctx, "tags.catalog_ring") }>
+			<option value="broad" selected>Catalog: broad</option>
+			<option value="test">Catalog: test</option>
+			<option value="first">Catalog: first</option>
+			<option value="fast">Catalog: fast</option>
+		</select>
 		<button
 			title="add tag"
 			type="button"
@@ -227,6 +234,12 @@ templ EditTag(commonInfo *partials.CommonInfo) {
 					<input id="edit-tag-name" name="tag" class="uk-input w-1/3" type="text" value="" placeholder={ i18n.T(ctx, "tags.new") } spellcheck="false"/>
 					<input id="edit-tag-description" name="description" class="uk-input w-2/3" type="text" value="" placeholder={ i18n.T(ctx, "tags.optional_description") } spellcheck="false"/>
 					@ColorSelector("edit")
+					<select id="edit-tag-ring" name="catalog-ring" class="uk-select" title={ i18n.T(ctx, "tags.catalog_ring") }>
+						<option value="broad">Catalog: broad</option>
+						<option value="test">Catalog: test</option>
+						<option value="first">Catalog: first</option>
+						<option value="fast">Catalog: fast</option>
+					</select>
 				</div>
 				<div class="flex gap-4">
 					<button
@@ -261,4 +274,11 @@ func GetRandomColor() string {
 templ RandomColor(color string) {
 	<div id="new-tag-example" class={ "rounded-full px-5 py-1 text-white inline-block", fmt.Sprintf("bg-%s-500", color) }>{ i18n.T(ctx, "Example") }</div>
 	<input type="hidden" name="color" id="new-tag-color" value={ color }/>
+}
+
+func TagCatalogRing(t *ent.Tag) string {
+	if t.CatalogRing != nil && *t.CatalogRing != "" {
+		return *t.CatalogRing
+	}
+	return "broad"
 }

@@ -15,20 +15,29 @@ import (
 
 // RepoServer serves Munki/CIMIAN manifests and catalogs over mTLS.
 type RepoServer struct {
-	Router  *echo.Echo
-	Handler *handlers.Handler
-	Server  *http.Server
-	CACert  *x509.Certificate
+	Router           *echo.Echo
+	Handler          *handlers.Handler
+	Server           *http.Server
+	CACert           *x509.Certificate
+	RepoClientCACert *x509.Certificate
 }
 
 // New creates a new RepoServer instance.
-func New(m *models.Model, caCertPath string) *RepoServer {
+// caCertPath is used for handler logic; repoCACertPath is used for mTLS client validation.
+func New(m *models.Model, caCertPath string, repoCACertPath string) *RepoServer {
 	r := RepoServer{}
 
 	var err error
 	r.CACert, err = utils.ReadPEMCertificate(caCertPath)
 	if err != nil {
 		log.Fatalf("[FATAL]: could not read CA certificate for repo server: %v", err)
+	}
+
+	if repoCACertPath != "" && repoCACertPath != caCertPath {
+		r.RepoClientCACert, err = utils.ReadPEMCertificate(repoCACertPath)
+		if err != nil {
+			log.Fatalf("[FATAL]: could not read repo CA certificate: %v", err)
+		}
 	}
 
 	// Minimal Echo router — no sessions, no CSRF, no i18n needed
@@ -47,7 +56,11 @@ func New(m *models.Model, caCertPath string) *RepoServer {
 // Serve starts the repo server with mandatory mTLS client certificate verification.
 func (r *RepoServer) Serve(address, certFile, certKey string) error {
 	cp := x509.NewCertPool()
-	cp.AddCert(r.CACert)
+	if r.RepoClientCACert != nil {
+		cp.AddCert(r.RepoClientCACert)
+	} else {
+		cp.AddCert(r.CACert)
+	}
 
 	r.Server = &http.Server{
 		Addr:    address,

@@ -1,0 +1,151 @@
+package deploy_views
+
+import (
+	"github.com/invopop/ctxi18n/i18n"
+	"github.com/labstack/echo/v4"
+	"github.com/open-uem/ent"
+	"github.com/open-uem/openuem-console/internal/views/partials"
+	"strconv"
+)
+
+type DeployDashboardData struct {
+	TotalInstalled int
+	TotalPending   int
+	TotalFailed    int
+	SuccessRate    int
+	RecentLogs     []*ent.SoftwareInstallLog
+}
+
+templ DeployDashboard(c echo.Context, data DeployDashboardData, commonInfo *partials.CommonInfo) {
+	<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "deploy_dashboard.title") }</title>
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: i18n.T(ctx, "deploy_dashboard.title"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/dashboard")))}}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@DeployNavbar("dashboard", commonInfo)
+				<div id="success" class="hidden"></div>
+				<div id="error" class="hidden"></div>
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "deploy_dashboard.title") }</h3>
+						<p class="uk-margin-small-top uk-text-small">
+							{ i18n.T(ctx, "deploy_dashboard.description") }
+						</p>
+					</div>
+					<div class="uk-card-body">
+						<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+							<div class="uk-card uk-card-default p-4 text-center">
+								<p class="text-3xl uk-text-bold text-green-600">{ strconv.Itoa(data.TotalInstalled) }</p>
+								<p class="uk-text-small uk-text-muted">{ i18n.T(ctx, "deploy_dashboard.installed") }</p>
+							</div>
+							<div class="uk-card uk-card-default p-4 text-center">
+								<p class="text-3xl uk-text-bold text-amber-600">{ strconv.Itoa(data.TotalPending) }</p>
+								<p class="uk-text-small uk-text-muted">{ i18n.T(ctx, "deploy_dashboard.pending") }</p>
+							</div>
+							<div class="uk-card uk-card-default p-4 text-center">
+								<p class="text-3xl uk-text-bold text-red-600">{ strconv.Itoa(data.TotalFailed) }</p>
+								<p class="uk-text-small uk-text-muted">{ i18n.T(ctx, "deploy_dashboard.failed") }</p>
+							</div>
+							<div class="uk-card uk-card-default p-4 text-center">
+								<p class="text-3xl uk-text-bold text-blue-600">{ strconv.Itoa(data.SuccessRate) }%</p>
+								<p class="uk-text-small uk-text-muted">{ i18n.T(ctx, "deploy_dashboard.success_rate") }</p>
+							</div>
+						</div>
+						<div class="mt-8">
+							<h4 class="uk-text-bold mb-4">{ i18n.T(ctx, "deploy_dashboard.recent_activity") }</h4>
+							if len(data.RecentLogs) > 0 {
+								<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped">
+									<thead>
+										<tr>
+											<th>{ i18n.T(ctx, "deploy_dashboard.agent") }</th>
+											<th>{ i18n.T(ctx, "managed_software.package") }</th>
+											<th>{ i18n.T(ctx, "managed_software.action") }</th>
+											<th>{ i18n.T(ctx, "managed_software.status") }</th>
+											<th>{ i18n.T(ctx, "managed_software.version") }</th>
+											<th>{ i18n.T(ctx, "managed_software.date") }</th>
+											<th>{ i18n.T(ctx, "managed_software.error") }</th>
+										</tr>
+									</thead>
+									<tbody>
+										for _, log := range data.RecentLogs {
+											<tr>
+												<td class="!align-middle">
+													if log.Edges.Agent != nil {
+														<a
+															class="uk-link"
+															href={ templ.URL(partials.GetNavigationUrl(commonInfo, "/computers/" + log.Edges.Agent.ID + "/managed-software")) }
+															hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/computers/" + log.Edges.Agent.ID + "/managed-software"))) }
+															hx-target="#main"
+															hx-swap="outerHTML"
+															hx-push-url="true"
+														>
+															{ log.Edges.Agent.Nickname }
+														</a>
+													}
+												</td>
+												<td class="!align-middle">
+													if log.Edges.Package != nil {
+														{ log.Edges.Package.DisplayName }
+													}
+												</td>
+												<td class="!align-middle">
+													@DashboardActionBadge(string(log.Action))
+												</td>
+												<td class="!align-middle">
+													@DashboardStatusBadge(string(log.Status))
+												</td>
+												<td class="!align-middle">{ log.InstalledVersion }</td>
+												<td class="!align-middle">{ log.Created.Format("2006-01-02 15:04") }</td>
+												<td class="!align-middle">
+													if log.ErrorMessage != "" {
+														<span class="uk-text-danger uk-text-small" title={ log.ErrorMessage }>
+															if len(log.ErrorMessage) > 50 {
+																{ log.ErrorMessage[:50] + "..." }
+															} else {
+																{ log.ErrorMessage }
+															}
+														</span>
+													}
+												</td>
+											</tr>
+										}
+									</tbody>
+								</table>
+							} else {
+								<p class="uk-text-small uk-text-muted">{ i18n.T(ctx, "deploy_dashboard.no_recent_activity") }</p>
+							}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+templ DashboardStatusBadge(status string) {
+	switch status {
+		case "success":
+			<span class="uk-badge uk-badge-success">{ status }</span>
+		case "failed":
+			<span class="uk-badge uk-badge-danger">{ status }</span>
+		case "pending":
+			<span class="uk-badge uk-badge-warning">{ status }</span>
+		case "downloading", "installing":
+			<span class="uk-badge uk-badge-primary">{ status }</span>
+		default:
+			<span class="uk-badge">{ status }</span>
+	}
+}
+
+templ DashboardActionBadge(action string) {
+	switch action {
+		case "install":
+			<span class="uk-label uk-label-primary">{ action }</span>
+		case "uninstall":
+			<span class="uk-label uk-label-danger">{ action }</span>
+		case "update":
+			<span class="uk-label uk-label-warning">{ action }</span>
+		default:
+			<span class="uk-label">{ action }</span>
+	}
+}

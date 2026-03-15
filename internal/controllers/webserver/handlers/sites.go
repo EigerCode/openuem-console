@@ -188,8 +188,9 @@ func (h *Handler) AddSite(c echo.Context) error {
 	}
 
 	domain := c.FormValue("domain")
+	catalogRing := c.FormValue("catalog-ring")
 
-	err = h.Model.AddSite(tenantID, name, isDefault, domain)
+	err = h.Model.AddSite(tenantID, name, isDefault, domain, catalogRing)
 	if err != nil {
 		return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "sites.new_error"), true))
 	}
@@ -253,7 +254,9 @@ func (h *Handler) EditSite(c echo.Context) error {
 			return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "sites.could_not_convert_to_bool", err.Error()), true))
 		}
 
-		if err := h.Model.UpdateSite(tenantID, s.ID, name, domain, isDefault); err != nil {
+		catalogRing := c.FormValue("catalog-ring")
+
+		if err := h.Model.UpdateSite(tenantID, s.ID, name, domain, isDefault, catalogRing); err != nil {
 			return RenderError(c, partials.ErrorMessage(err.Error(), false))
 		}
 
@@ -416,7 +419,7 @@ func (h *Handler) ImportSites(c echo.Context) error {
 			continue
 		}
 
-		err = h.Model.AddSite(tenantID, record[0], false, record[1])
+		err = h.Model.AddSite(tenantID, record[0], false, record[1], "")
 		if err != nil {
 			errors = append(errors, err.Error())
 			continue
