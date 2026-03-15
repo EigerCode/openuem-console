@@ -17,26 +17,33 @@ func (h *Handler) GetManifest(c echo.Context) error {
 	if serial == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "serial number required")
 	}
+	// Strip file extensions (CIMIAN appends .yaml, Munki may append .plist)
+	serial = strings.TrimSuffix(serial, ".yaml")
+	serial = strings.TrimSuffix(serial, ".plist")
 
-	// Extract agent identity from mTLS client certificate
-	agentID, err := h.extractAgentID(c)
+	// Verify mTLS client certificate and validate CN matches the requested serial
+	certAgentID, err := h.extractAgentID(c)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
+	if certAgentID != serial {
+		return echo.NewHTTPError(http.StatusForbidden, "certificate CN does not match requested manifest")
+	}
 
-	log.Printf("[REPO]: manifest request from agent %s for serial %s", agentID, serial)
+	log.Printf("[REPO]: manifest request for agent %s", serial)
 
 	// Determine platform from User-Agent header
 	platform := h.detectPlatform(c)
 
-	// Look up the agent to find its tenant, site, and tags
-	agent, err := h.Model.GetAgentWithRelations(agentID)
+	// Look up the agent by serial (which is the agent UUID when Munki uses
+	// UseClientCertificateCNAsClientIdentifier=True, sending the cert CN as identifier)
+	agent, err := h.Model.GetAgentWithRelations(serial)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "agent not found")
 	}
 
-	// Collect all assignments for this agent (site + tags + direct)
-	assignments, err := h.Model.GetEffectiveAssignments(agent)
+	// Collect all assignments for this agent (site + tags + direct), filtered by platform
+	assignments, err := h.Model.GetEffectiveAssignments(agent, platform)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "could not resolve assignments")
 	}
@@ -72,6 +79,18 @@ func (h *Handler) extractAgentID(c echo.Context) (string, error) {
 		return "", fmt.Errorf("client certificate has no common name")
 	}
 	return cn, nil
+}
+
+// extractTenantID gets the tenant ID from the mTLS client certificate OU field.
+func (h *Handler) extractTenantID(c echo.Context) (string, error) {
+	if c.Request().TLS == nil || len(c.Request().TLS.PeerCertificates) == 0 {
+		return "", fmt.Errorf("no client certificate provided")
+	}
+	cert := c.Request().TLS.PeerCertificates[0]
+	if len(cert.Subject.OrganizationalUnit) == 0 || cert.Subject.OrganizationalUnit[0] == "" {
+		return "", fmt.Errorf("client certificate has no organizational unit (tenant ID)")
+	}
+	return cert.Subject.OrganizationalUnit[0], nil
 }
 
 // detectPlatform determines the client platform from the User-Agent header.

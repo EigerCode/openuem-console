@@ -2,6 +2,7 @@ package s3storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -9,6 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 )
 
 // Config holds S3-compatible storage configuration.
@@ -137,7 +140,17 @@ func (c *Client) Exists(ctx context.Context, key string) (bool, error) {
 
 	_, err := c.s3.HeadObject(ctx, input)
 	if err != nil {
-		return false, nil
+		// Check if the error is a "not found" type; otherwise propagate
+		var nsk *types.NotFound
+		if errors.As(err, &nsk) {
+			return false, nil
+		}
+		// Also check for 404 status code in smithy API errors
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == "NotFound" {
+			return false, nil
+		}
+		return false, fmt.Errorf("s3 head %s: %w", key, err)
 	}
 	return true, nil
 }
@@ -156,25 +169,32 @@ func (c *Client) TestConnection(ctx context.Context) error {
 	return nil
 }
 
-// ListObjects lists objects with a given prefix.
+// ListObjects lists objects with a given prefix, handling pagination.
 func (c *Client) ListObjects(ctx context.Context, prefix string) ([]ObjectInfo, error) {
+	var objects []ObjectInfo
 	input := &s3.ListObjectsV2Input{
 		Bucket: aws.String(c.bucket),
 		Prefix: aws.String(c.fullKey(prefix)),
 	}
 
-	out, err := c.s3.ListObjectsV2(ctx, input)
-	if err != nil {
-		return nil, fmt.Errorf("s3 list %s: %w", prefix, err)
-	}
+	for {
+		out, err := c.s3.ListObjectsV2(ctx, input)
+		if err != nil {
+			return nil, fmt.Errorf("s3 list %s: %w", prefix, err)
+		}
 
-	var objects []ObjectInfo
-	for _, obj := range out.Contents {
-		objects = append(objects, ObjectInfo{
-			Key:          aws.ToString(obj.Key),
-			Size:         aws.ToInt64(obj.Size),
-			LastModified: aws.ToTime(obj.LastModified),
-		})
+		for _, obj := range out.Contents {
+			objects = append(objects, ObjectInfo{
+				Key:          aws.ToString(obj.Key),
+				Size:         aws.ToInt64(obj.Size),
+				LastModified: aws.ToTime(obj.LastModified),
+			})
+		}
+
+		if !aws.ToBool(out.IsTruncated) {
+			break
+		}
+		input.ContinuationToken = out.NextContinuationToken
 	}
 	return objects, nil
 }

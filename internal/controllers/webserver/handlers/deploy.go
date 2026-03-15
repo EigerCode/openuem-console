@@ -16,6 +16,16 @@ import (
 	"github.com/open-uem/openuem-console/internal/views/partials"
 )
 
+func (h *Handler) DeployQuickDeploy(c echo.Context) error {
+	commonInfo, err := h.GetCommonInfo(c)
+	if err != nil {
+		return err
+	}
+
+	install := c.QueryParam("mode") != "uninstall"
+	return RenderView(c, deploy_views.DeployIndex("| Deploy", deploy_views.Deploy(c, install, "", commonInfo), commonInfo))
+}
+
 func (h *Handler) DeployInstall(c echo.Context) error {
 	commonInfo, err := h.GetCommonInfo(c)
 	if err != nil {
@@ -86,13 +96,13 @@ func (h *Handler) SearchPackagesAction(c echo.Context, install bool) error {
 
 	if len(filteredSources) == 0 {
 		if useWinget {
-			filteredSources = append(allSources, "winget")
+			filteredSources = append(filteredSources, "winget")
 		}
 		if useFlatpak {
-			filteredSources = append(allSources, "flatpak")
+			filteredSources = append(filteredSources, "flatpak")
 		}
 		if useBrew {
-			filteredSources = append(allSources, "brew")
+			filteredSources = append(filteredSources, "brew")
 		}
 	}
 
@@ -216,10 +226,10 @@ func (h *Handler) DeployPackageToSelectedAgents(c echo.Context) error {
 	packageName := c.FormValue("filterByPackageName")
 	installParam := c.FormValue("filterByInstallationType")
 
-	agents := strings.Split(checkedItems, ",")
-	if len(agents) == 0 {
+	if checkedItems == "" {
 		return RenderError(c, partials.ErrorMessage(i18n.T(c.Request().Context(), "agents.no_selected_agents_to_deploy"), true))
 	}
+	agents := strings.Split(checkedItems, ",")
 
 	install, err := strconv.ParseBool(installParam)
 	if err != nil {

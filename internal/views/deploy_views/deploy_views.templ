@@ -14,21 +14,12 @@ import (
 )
 
 templ Deploy(c echo.Context, install bool, successMessage string, commonInfo *partials.CommonInfo) {
-	if install {
-		<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "Install") } </title>
-		@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: "Install", Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/install")))}}, commonInfo)
-	} else {
-		<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "Uninstall") } </title>
-		@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: "Uninstall", Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/uninstall")))}}, commonInfo)
-	}
+	<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "QuickDeploy") } </title>
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: i18n.T(ctx, "QuickDeploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/quickdeploy")))}}, commonInfo)
 	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
 		<div class="uk-width-1-2@m uk-card uk-card-default">
 			<div class="uk-card-body uk-flex uk-flex-column gap-4">
-				if install {
-					@DeployNavbar("install", commonInfo)
-				} else {
-					@DeployNavbar("uninstall", commonInfo)
-				}
+				@DeployNavbar("quickdeploy", commonInfo)
 				if successMessage != "" {
 					@partials.SuccessMessage(successMessage)
 				} else {
@@ -37,13 +28,7 @@ templ Deploy(c echo.Context, install bool, successMessage string, commonInfo *pa
 				<div id="error" class="hidden"></div>
 				<div class="uk-width-1-2@m uk-card uk-card-default">
 					<div class="uk-card-header">
-						<h3 class="uk-card-title">
-							if install {
-								{ i18n.T(ctx, "install.title") }
-							} else {
-								{ i18n.T(ctx, "uninstall.title") }
-							}
-						</h3>
+						<h3 class="uk-card-title">{ i18n.T(ctx, "QuickDeploy") }</h3>
 						<p class="uk-margin-small-top uk-text-small">
 							if install {
 								{ i18n.T(ctx, "install.phase_1") }
@@ -53,6 +38,30 @@ templ Deploy(c echo.Context, install bool, successMessage string, commonInfo *pa
 						</p>
 					</div>
 					<div class="uk-card-body mt-8 mb-2">
+						<div class="flex items-center gap-4 mb-4">
+							<div class="uk-button-group">
+								<button
+									type="button"
+									class={ "uk-button uk-button-small", templ.KV("uk-button-primary", install), templ.KV("uk-button-default", !install) }
+									hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/quickdeploy?mode=install"))) }
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-push-url="true"
+								>
+									{ i18n.T(ctx, "Install") }
+								</button>
+								<button
+									type="button"
+									class={ "uk-button uk-button-small", templ.KV("uk-button-danger", !install), templ.KV("uk-button-default", install) }
+									hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/quickdeploy?mode=uninstall"))) }
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-push-url="true"
+								>
+									{ i18n.T(ctx, "Uninstall") }
+								</button>
+							</div>
+						</div>
 						<div class="w-1/3">
 							<form
 								class="uk-search uk-search-default w-full flex items-center gap-4"
@@ -107,26 +116,48 @@ templ Deploy(c echo.Context, install bool, successMessage string, commonInfo *pa
 
 templ DeployNavbar(active string, commonInfo *partials.CommonInfo) {
 	<ul class="uk-tab">
-		<li class={ templ.KV("uk-active", active == "install") }>
+		<li class={ templ.KV("uk-active", active == "dashboard") }>
 			<a
-				href={ templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/install")) }
-				hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/install"))) }
+				href={ templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/dashboard")) }
+				hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/dashboard"))) }
 				hx-push-url="true"
 				hx-target="#main"
 				hx-swap="outerHTML"
 			>
-				{ i18n.T(ctx, "Install") }
+				{ i18n.T(ctx, "deploy_dashboard.title") }
 			</a>
 		</li>
-		<li class={ templ.KV("uk-active", active == "uninstall") }>
+		<li class={ templ.KV("uk-active", active == "packages") }>
 			<a
-				href={ templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/uninstall")) }
-				hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/uninstall"))) }
+				href={ templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages")) }
+				hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages"))) }
 				hx-push-url="true"
 				hx-target="#main"
 				hx-swap="outerHTML"
 			>
-				{ i18n.T(ctx, "Uninstall") }
+				{ i18n.T(ctx, "deploy_packages.title") }
+			</a>
+		</li>
+		<li class={ templ.KV("uk-active", active == "assignments") }>
+			<a
+				href={ templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/assignments")) }
+				hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/assignments"))) }
+				hx-push-url="true"
+				hx-target="#main"
+				hx-swap="outerHTML"
+			>
+				{ i18n.T(ctx, "deploy_assignments.title") }
+			</a>
+		</li>
+		<li class={ templ.KV("uk-active", active == "quickdeploy") }>
+			<a
+				href={ templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/quickdeploy")) }
+				hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/quickdeploy"))) }
+				hx-push-url="true"
+				hx-target="#main"
+				hx-swap="outerHTML"
+			>
+				{ i18n.T(ctx, "QuickDeploy") }
 			</a>
 		</li>
 	</ul>
@@ -221,21 +252,12 @@ templ SearchPacketResult(install bool, packages []nats.SoftwarePackage, c echo.C
 }
 
 templ SelectPackageDeployment(c echo.Context, p partials.PaginationAndSort, f filters.AgentFilter, packageId, packageName, packageSource string, agents []*ent.Agent, install bool, refresh int, itemsPerPage int, commonInfo *partials.CommonInfo) {
-	if install {
-		<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "Install") } </title>
-		@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: "Install", Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/install")))}, {Title: packageName, Url: ""}}, commonInfo)
-	} else {
-		<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "Uninstall") } </title>
-		@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: "Uninstall", Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/uninstall")))}, {Title: packageName, Url: ""}}, commonInfo)
-	}
+	<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "QuickDeploy") } </title>
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: i18n.T(ctx, "QuickDeploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/quickdeploy")))}, {Title: packageName, Url: ""}}, commonInfo)
 	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
 		<div class="uk-width-1-2@m uk-card uk-card-default">
 			<div class="uk-card-body uk-flex uk-flex-column gap-4">
-				if install {
-					@DeployNavbar("install", commonInfo)
-				} else {
-					@DeployNavbar("uninstall", commonInfo)
-				}
+				@DeployNavbar("quickdeploy", commonInfo)
 				<div id="error" class="hidden"></div>
 				<div id="success" class="hidden"></div>
 				<div class="uk-width-1-2@m uk-card uk-card-default">
@@ -259,9 +281,8 @@ templ SelectPackageDeployment(c echo.Context, p partials.PaginationAndSort, f fi
 							hx-post={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/selectpackagedeployment"))) }
 							hx-target="#main"
 							hx-push-url="true"
-							hx-target="#main"
 							hx-swap="outerHTML"
-							htmx-indicator="#update-spinner"
+							hx-indicator="#update-spinner"
 							_="on htmx:configRequest
 								set storedItems to [] as Array
 								if sessionStorage.selectedAgents exists then														

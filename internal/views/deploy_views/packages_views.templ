@@ -1,0 +1,1442 @@
+package deploy_views
+
+import (
+	"fmt"
+	"github.com/invopop/ctxi18n/i18n"
+	"github.com/labstack/echo/v4"
+	"github.com/open-uem/ent"
+	"github.com/open-uem/ent/softwarepackage"
+	"github.com/open-uem/openuem-console/internal/models"
+	"github.com/open-uem/openuem-console/internal/views/filters"
+	"github.com/open-uem/openuem-console/internal/views/partials"
+	"strconv"
+	"strings"
+)
+
+func platformLabel(p string) string {
+	switch p {
+	case "darwin":
+		return "macOS"
+	case "windows":
+		return "Windows"
+	default:
+		return p
+	}
+}
+
+func formatBytes(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
+}
+
+func hasUploadingPackages(packages []models.PackageListEntry) bool {
+	for _, pkg := range packages {
+		if pkg.HasUploading {
+			return true
+		}
+	}
+	return false
+}
+
+func entryDisplayName(e models.PackageListEntry) string {
+	if e.DisplayName != "" {
+		return e.DisplayName
+	}
+	return e.Name
+}
+
+templ packageIconEntry(e models.PackageListEntry, commonInfo *partials.CommonInfo) {
+	<div class="flex items-center justify-center w-8 h-8">
+		if e.IconName != "" {
+			<img src={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages/icon/" + e.IconName))) } class="w-8 h-8 object-contain" alt={ entryDisplayName(e) }/>
+		} else {
+			@partials.Brand(strings.ToLower(entryDisplayName(e)), strings.ToLower(e.Developer))
+		}
+	</div>
+}
+
+templ packageIconFromPkg(pkg *ent.SoftwarePackage, commonInfo *partials.CommonInfo) {
+	<div class="flex items-center justify-center w-8 h-8">
+		if pkg.IconName != "" {
+			<img src={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages/icon/" + pkg.IconName))) } class="w-8 h-8 object-contain" alt={ pkg.Name }/>
+		} else {
+			@partials.Brand(strings.ToLower(func() string {
+				if pkg.DisplayName != "" {
+					return pkg.DisplayName
+				}
+				return pkg.Name
+			}()), strings.ToLower(pkg.Developer))
+		}
+	</div>
+}
+
+templ Packages(c echo.Context, packages []models.PackageListEntry, p partials.PaginationAndSort, search string, catalogFilter string, catalogNames []string, commonInfo *partials.CommonInfo, successMessage string, hasRepo bool) {
+	<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "deploy_packages.title") }</title>
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: i18n.T(ctx, "deploy_packages.title"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages")))}}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		if hasUploadingPackages(packages) {
+			<div
+				hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages"))) }
+				hx-trigger="every 3s"
+				hx-target="#main"
+				hx-swap="outerHTML"
+				hx-push-url="false"
+			></div>
+		}
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@DeployNavbar("packages", commonInfo)
+				if successMessage != "" {
+					@partials.SuccessMessage(successMessage)
+				} else {
+					<div id="success" class="hidden"></div>
+				}
+				<div id="error" class="hidden"></div>
+				<div id="confirm" class="hidden"></div>
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<div class="flex items-center justify-between">
+							<div>
+								<h3 class="uk-card-title">{ i18n.T(ctx, "deploy_packages.title") }</h3>
+								<p class="uk-margin-small-top uk-text-small">
+									{ i18n.T(ctx, "deploy_packages.description") }
+								</p>
+							</div>
+							<div class="flex gap-2">
+								if hasRepo {
+									<button
+										class="uk-button uk-button-primary flex items-center gap-2"
+										hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages/new"))) }
+										hx-target="#main"
+										hx-swap="outerHTML"
+										hx-push-url="true"
+									>
+										<uk-icon hx-history="false" icon="upload" custom-class="h-5 w-5" uk-cloack></uk-icon>
+										{ i18n.T(ctx, "deploy_packages.upload") }
+									</button>
+								} else {
+									<button
+										class="uk-button uk-button-default flex items-center gap-2 opacity-50 cursor-not-allowed"
+										disabled
+										uk-tooltip={ i18n.T(ctx, "deploy_packages.no_repo") }
+									>
+										<uk-icon hx-history="false" icon="upload" custom-class="h-5 w-5" uk-cloack></uk-icon>
+										{ i18n.T(ctx, "deploy_packages.upload") }
+									</button>
+								}
+								if !commonInfo.CurrentTenantIsMain {
+									<button
+										class="uk-button uk-button-default flex items-center gap-2"
+										hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages/import"))) }
+										hx-target="#main"
+										hx-swap="outerHTML"
+										hx-push-url="true"
+									>
+										<uk-icon hx-history="false" icon="rss" custom-class="h-5 w-5" uk-cloack></uk-icon>
+										{ i18n.T(ctx, "deploy_packages.subscribe") }
+									</button>
+								}
+							</div>
+						</div>
+					</div>
+					<div class="uk-card-body flex flex-col gap-4">
+						<div class="flex gap-4 items-center mt-4">
+							<div class="w-1/3">
+								@filters.Search(c, p, search, "#main", "outerHTML")
+							</div>
+							if len(catalogNames) > 0 {
+								<div class="flex gap-1 items-center">
+									<span class="uk-text-small">{ i18n.T(ctx, "deploy_catalogs.catalog") }:</span>
+									@filters.FilterBySingleChoice(c, p, "Catalog", "deploy_catalogs.catalog", catalogNames, func() []string {
+										if catalogFilter != "" {
+											return []string{catalogFilter}
+										}
+										return nil
+									}(), "#main", "outerHTML", false, func() bool {
+										return catalogFilter == ""
+									})
+								</div>
+							}
+							@filters.ClearFilters(string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages"))), "#main", "outerHTML", func() bool {
+								return search == "" && catalogFilter == ""
+							})
+						</div>
+						if len(packages) > 0 {
+							<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped mt-4">
+								<thead>
+									<tr>
+										<th class="w-10"><span class="sr-only">Icon</span></th>
+										<th>
+											<div class="flex gap-1 items-center">
+												<span>{ i18n.T(ctx, "Name") }</span>
+												@partials.SortByColumnIcon(c, p, i18n.T(ctx, "Name"), "name", "alpha", "#main", "outerHTML", "get")
+											</div>
+										</th>
+										<th>
+											<div class="flex gap-1 items-center">
+												<span>{ i18n.T(ctx, "deploy_packages.version") }</span>
+												@partials.SortByColumnIcon(c, p, i18n.T(ctx, "deploy_packages.version"), "version", "alpha", "#main", "outerHTML", "get")
+											</div>
+										</th>
+										<th>
+											<div class="flex gap-1 items-center">
+												<span>{ i18n.T(ctx, "deploy_packages.platform") }</span>
+												@partials.SortByColumnIcon(c, p, i18n.T(ctx, "deploy_packages.platform"), "platform", "alpha", "#main", "outerHTML", "get")
+											</div>
+										</th>
+										<th>
+											<div class="flex gap-1 items-center">
+												<span>{ i18n.T(ctx, "deploy_packages.category") }</span>
+												@partials.SortByColumnIcon(c, p, i18n.T(ctx, "deploy_packages.category"), "category", "alpha", "#main", "outerHTML", "get")
+											</div>
+										</th>
+										<th>{ i18n.T(ctx, "deploy_catalogs.catalog") }</th>
+									</tr>
+								</thead>
+								<tbody>
+									for _, pkg := range packages {
+										for vIdx, ver := range pkg.Versions {
+											<tr
+												class="cursor-pointer"
+												hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/deploy/packages/%d", ver.ID)))) }
+												hx-target="#main"
+												hx-swap="outerHTML"
+												hx-push-url="true"
+											>
+												if vIdx == 0 {
+													<td class="w-10 text-center !align-middle" rowspan={ strconv.Itoa(len(pkg.Versions)) }>
+														@packageIconEntry(pkg, commonInfo)
+													</td>
+													<td class="!align-middle" rowspan={ strconv.Itoa(len(pkg.Versions)) }>
+														{ entryDisplayName(pkg) }
+														if pkg.HasUploading {
+															<span class="inline-flex items-center gap-1 ml-2">
+																<div uk-spinner="ratio: 0.4"></div>
+																<span class="uk-text-small uk-text-muted">{ i18n.T(ctx, "deploy_packages.uploading") }</span>
+															</span>
+														}
+													</td>
+												}
+												<td class="!align-middle">
+													{ ver.Version }
+													if ver.Source == "global_subscription" {
+														<uk-icon icon="globe" custom-class="h-3 w-3 text-muted ml-1 inline-block" uk-cloack></uk-icon>
+													}
+												</td>
+												if vIdx == 0 {
+													<td class="!align-middle" rowspan={ strconv.Itoa(len(pkg.Versions)) }>
+														@partials.OSBadge(pkg.Platform)
+													</td>
+													<td class="!align-middle uk-text-small" rowspan={ strconv.Itoa(len(pkg.Versions)) }>{ pkg.Category }</td>
+												}
+												<td class="!align-middle">
+													<div class="flex gap-1 flex-wrap">
+														for _, cat := range ver.Catalogs {
+															<span class="uk-badge uk-badge-secondary text-xs capitalize">{ cat }</span>
+														}
+													</div>
+												</td>
+											</tr>
+										}
+									}
+								</tbody>
+							</table>
+						} else {
+							<p class="uk-text-small uk-text-muted mt-4">
+								{ i18n.T(ctx, "deploy_packages.no_packages") }
+							</p>
+						}
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+func isFamilySubscribed(versions []*ent.SoftwarePackage) bool {
+	for _, pkg := range versions {
+		if pkg.Source == softwarepackage.SourceGlobalSubscription {
+			return true
+		}
+	}
+	return false
+}
+
+templ PackageFamily(c echo.Context, name string, platform string, versions []*ent.SoftwarePackage, assignments []*ent.SoftwareAssignment, commonInfo *partials.CommonInfo, hasRepo bool) {
+	<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { name }</title>
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: i18n.T(ctx, "deploy_packages.title"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages")))}, {Title: name, Url: ""}}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@DeployNavbar("packages", commonInfo)
+				<div id="success" class="hidden"></div>
+				<div id="error" class="hidden"></div>
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header flex justify-between items-center">
+						<div>
+							<h3 class="uk-card-title flex items-center gap-2">
+								if len(versions) > 0 {
+									@packageIconFromPkg(versions[0], commonInfo)
+								}
+								{ name }
+							</h3>
+							<p class="uk-margin-small-top uk-text-small uk-text-muted">
+								{ platformLabel(platform) } — { strconv.Itoa(len(versions)) } version(s)
+							</p>
+						</div>
+						<div class="flex gap-2">
+							if isFamilySubscribed(versions) {
+								<span class="uk-badge uk-badge-secondary flex items-center gap-1">
+									<uk-icon hx-history="false" icon="rss" custom-class="h-4 w-4" uk-cloack></uk-icon>
+									{ i18n.T(ctx, "deploy_packages.subscribed") }
+								</span>
+								<button
+									class="uk-button uk-button-danger uk-button-small flex items-center gap-1"
+									hx-delete={ string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/deploy/packages/family?name=%s&platform=%s", name, platform)))) }
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-confirm={ i18n.T(ctx, "deploy_packages.confirm_unsubscribe") }
+								>
+									<uk-icon hx-history="false" icon="rss" custom-class="h-4 w-4" uk-cloack></uk-icon>
+									{ i18n.T(ctx, "deploy_packages.unsubscribe") }
+								</button>
+							}
+							if hasRepo {
+								<button
+									class="uk-button uk-button-primary flex items-center gap-2"
+									hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages/new"))) }
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-push-url="true"
+								>
+									<uk-icon hx-history="false" icon="upload" custom-class="h-5 w-5" uk-cloack></uk-icon>
+									{ i18n.T(ctx, "deploy_packages.upload") }
+								</button>
+							}
+						</div>
+					</div>
+					<div class="uk-card-body flex flex-col gap-4">
+						<h4 class="uk-text-bold">Versions</h4>
+						<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped">
+							<thead>
+								<tr>
+									<th>{ i18n.T(ctx, "deploy_packages.version") }</th>
+									if !isFamilySubscribed(versions) {
+										<th>{ i18n.T(ctx, "deploy_packages.catalogs") }</th>
+									}
+									<th>Size</th>
+									if !isFamilySubscribed(versions) {
+										<th>{ i18n.T(ctx, "Actions") }</th>
+									}
+								</tr>
+							</thead>
+							<tbody>
+								for _, pkg := range versions {
+									<tr>
+										<td
+											class="!align-middle cursor-pointer"
+											hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/deploy/packages/%d", pkg.ID)))) }
+											hx-target="#main"
+											hx-swap="outerHTML"
+											hx-push-url="true"
+										>
+											{ pkg.Version }
+										</td>
+										if !isFamilySubscribed(versions) {
+											<td class="!align-middle uk-text-small">
+												if catalogs := pkg.Edges.Catalogs; len(catalogs) > 0 {
+													for i, cat := range catalogs {
+														<span class="uk-badge">{ cat.Name }</span>
+														if i < len(catalogs)-1 {
+															{ " " }
+														}
+													}
+												} else {
+													<span class="uk-text-muted">—</span>
+												}
+											</td>
+										}
+										<td class="!align-middle uk-text-small">{ formatBytes(pkg.SizeBytes) }</td>
+										if !isFamilySubscribed(versions) {
+											<td class="!align-middle">
+												<div class="flex gap-2">
+													<button
+														class="text-blue-600"
+														title={ i18n.T(ctx, "deploy_packages.edit") }
+														hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/deploy/packages/%d/edit", pkg.ID)))) }
+														hx-target="#main"
+														hx-swap="outerHTML"
+														hx-push-url="true"
+													>
+														<uk-icon hx-history="false" icon="pencil" custom-class="h-5 w-5" uk-cloack></uk-icon>
+													</button>
+													<button
+														class="text-red-600"
+														title={ i18n.T(ctx, "deploy_packages.delete") }
+														hx-delete={ string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/deploy/packages/%d", pkg.ID)))) }
+														hx-target="#main"
+														hx-swap="outerHTML"
+														hx-push-url="false"
+														hx-confirm={ i18n.T(ctx, "deploy_packages.confirm_delete") }
+													>
+														<uk-icon hx-history="false" icon="trash-2" custom-class="h-5 w-5" uk-cloack></uk-icon>
+													</button>
+												</div>
+											</td>
+										}
+									</tr>
+								}
+							</tbody>
+						</table>
+						<h4 class="uk-text-bold mt-4">{ i18n.T(ctx, "deploy_assignments.title") }</h4>
+						if len(assignments) > 0 {
+							<table class="uk-table uk-table-divider uk-table-small uk-table-striped">
+								<thead>
+									<tr>
+										<th>{ i18n.T(ctx, "deploy_assignments.type") }</th>
+										<th>{ i18n.T(ctx, "deploy_assignments.target_type") }</th>
+										<th>{ i18n.T(ctx, "deploy_assignments.target") }</th>
+										<th>{ i18n.T(ctx, "deploy_assignments.active") }</th>
+										<th>{ i18n.T(ctx, "Actions") }</th>
+									</tr>
+								</thead>
+								<tbody>
+									for _, a := range assignments {
+										<tr>
+											<td class="!align-middle">
+												<span class={ "uk-badge", templ.KV("uk-badge-primary", string(a.AssignmentType) == "managed_install"), templ.KV("uk-badge-danger", string(a.AssignmentType) == "managed_uninstall") }>
+													{ string(a.AssignmentType) }
+												</span>
+											</td>
+											<td class="!align-middle capitalize">{ string(a.TargetType) }</td>
+											<td class="!align-middle">{ a.TargetID }</td>
+											<td class="!align-middle">
+												if a.Active {
+													<uk-icon icon="check" custom-class="h-5 w-5 text-green-600" uk-cloack></uk-icon>
+												} else {
+													<uk-icon icon="x" custom-class="h-5 w-5 text-red-600" uk-cloack></uk-icon>
+												}
+											</td>
+											<td class="!align-middle">
+												<button
+													class="text-red-600"
+													title={ i18n.T(ctx, "deploy_assignments.delete") }
+													hx-delete={ string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/deploy/assignments/%d", a.ID)))) }
+													hx-target="#main"
+													hx-swap="outerHTML"
+													hx-push-url="false"
+													hx-confirm={ i18n.T(ctx, "deploy_assignments.confirm_delete") }
+												>
+													<uk-icon hx-history="false" icon="trash-2" custom-class="h-5 w-5" uk-cloack></uk-icon>
+												</button>
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						} else {
+							<p class="uk-text-small uk-text-muted">
+								{ i18n.T(ctx, "deploy_assignments.no_assignments") }
+							</p>
+						}
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+templ PackageUploadForm(c echo.Context, commonInfo *partials.CommonInfo, errMessage string) {
+	<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "deploy_packages.upload") }</title>
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: i18n.T(ctx, "deploy_packages.title"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages")))}, {Title: i18n.T(ctx, "deploy_packages.upload"), Url: ""}}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@DeployNavbar("packages", commonInfo)
+				<div id="success" class="hidden"></div>
+				if errMessage != "" {
+					@partials.ErrorMessage(errMessage, true)
+				} else {
+					<div id="error" class="hidden"></div>
+				}
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "deploy_packages.upload") }</h3>
+						<p class="uk-margin-small-top uk-text-small">
+							{ i18n.T(ctx, "deploy_packages.upload_description") }
+						</p>
+					</div>
+					<div class="uk-card-body">
+						<form
+							id="upload-form"
+							enctype="multipart/form-data"
+							hx-post={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages/analyze"))) }
+							hx-target="#main"
+							hx-swap="outerHTML"
+							hx-push-url="false"
+							hx-encoding="multipart/form-data"
+							_="on htmx:xhr:progress(loaded, total)
+								set pct to Math.round((loaded / total) * 100)
+								set #analyze-progress-bar.style.width to pct + '%'
+								put pct + '%' into #analyze-progress-text
+								if pct == 100
+									add .hidden to #analyze-upload-phase
+									remove .hidden from #analyze-processing-phase
+								end"
+						>
+							<!-- Drag & Drop Zone -->
+							<div
+								id="drop-zone"
+								style="border: 2px dashed #d1d5db; border-radius: 0.5rem; padding: 3rem 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background-color 0.2s;"
+								_="on dragover halt the event then set my.style.borderColor to '#3b82f6' then set my.style.backgroundColor to '#eff6ff'
+								   on dragleave set my.style.borderColor to '#d1d5db' then set my.style.backgroundColor to ''
+								   on drop halt the event then set my.style.borderColor to '#d1d5db' then set my.style.backgroundColor to ''
+								     then set fileInput to #pkg-file-input
+								     then set fileInput.files to event.dataTransfer.files
+								     then remove .hidden from #analyze-progress
+								     then add .hidden to #drop-zone
+								     then put fileInput.files[0].name into #analyze-filename
+								     then call htmx.trigger(closest <form/> to me, 'submit')
+								   on click call #pkg-file-input.click()"
+							>
+								<uk-icon icon="upload" custom-class="h-12 w-12 mx-auto" style="color: #9ca3af;" uk-cloack></uk-icon>
+								<p class="mt-4 uk-text-small uk-text-muted">
+									{ i18n.T(ctx, "deploy_packages.drop_hint") }
+								</p>
+								<p class="mt-1 uk-text-small uk-text-muted">
+									.pkg, .dmg, .msi, .exe, .msix
+								</p>
+							</div>
+							<input
+								class="hidden"
+								type="file"
+								id="pkg-file-input"
+								name="pkg-file"
+								required
+								accept=".pkg,.dmg,.msi,.exe,.msix"
+								_="on change if my.files.length > 0
+									remove .hidden from #analyze-progress
+									add .hidden to #drop-zone
+									put my.files[0].name into #analyze-filename
+									call htmx.trigger(closest <form/> to me, 'submit')
+								end"
+							/>
+						</form>
+						<!-- Upload Progress -->
+						<div id="analyze-progress" class="hidden mt-4">
+							<div id="analyze-upload-phase">
+								<div class="flex items-center gap-3 mb-2">
+									<div uk-spinner="ratio: 0.5"></div>
+									<span id="analyze-filename" class="uk-text-small uk-text-muted truncate"></span>
+									<span id="analyze-progress-text" class="uk-text-small uk-text-bold ml-auto">0%</span>
+								</div>
+								<div class="w-full bg-gray-200 rounded-full h-2">
+									<div id="analyze-progress-bar" class="bg-primary h-2 rounded-full transition-all duration-200" style="width: 0%"></div>
+								</div>
+							</div>
+							<div id="analyze-processing-phase" class="hidden">
+								<p class="uk-text-small uk-text-muted mb-2">{ i18n.T(ctx, "deploy_packages.extracting") }</p>
+								<div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+									<div class="bg-primary h-2 rounded-full animate-indeterminate"></div>
+								</div>
+							</div>
+						</div>
+						<div class="flex flex-row-reverse gap-2 mt-4">
+							<button
+								type="button"
+								class="uk-button uk-button-default"
+								hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages"))) }
+								hx-target="#main"
+								hx-swap="outerHTML"
+								hx-push-url="true"
+							>
+								{ i18n.T(ctx, "Cancel") }
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+templ PackageAnalyzeResult(c echo.Context, meta map[string]string, repos []*ent.SoftwareRepo, catalogs []*ent.SoftwareCatalog, commonInfo *partials.CommonInfo, errMessage string) {
+	<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "deploy_packages.upload") }</title>
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: i18n.T(ctx, "deploy_packages.title"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages")))}, {Title: i18n.T(ctx, "deploy_packages.upload"), Url: ""}}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@DeployNavbar("packages", commonInfo)
+				<div id="success" class="hidden"></div>
+				if errMessage != "" {
+					@partials.ErrorMessage(errMessage, true)
+				} else {
+					<div id="error" class="hidden"></div>
+				}
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "deploy_packages.upload") }</h3>
+						<p class="uk-margin-small-top uk-text-small">
+							{ meta["filename"] }  — { meta["size"] }
+						</p>
+					</div>
+					<div class="uk-card-body">
+						<form
+							id="upload-form"
+							class="flex flex-col gap-4"
+							hx-post={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages"))) }
+							hx-target="#main"
+							hx-swap="outerHTML"
+							hx-push-url="false"
+							hx-encoding="multipart/form-data"
+						>
+							<input type="hidden" name="pkg-temp-file" value={ meta["temp_file"] }/>
+							<input type="hidden" name="pkg-original-filename" value={ meta["filename"] }/>
+							<!-- Tab Toggle -->
+							<div class="flex gap-1 border-b border-gray-200">
+								<button type="button" id="tab-form" class="px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary"
+									_="on click
+										remove .hidden from #view-form
+										add .hidden to #view-xml
+										add .border-primary .text-primary to me
+										remove .border-transparent .text-muted from me
+										add .border-transparent .text-muted to #tab-xml
+										remove .border-primary .text-primary from #tab-xml
+										call pkginfoDataToForm()">
+									Form
+								</button>
+								<button type="button" id="tab-xml" class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-muted"
+									_="on click
+										add .hidden to #view-form
+										remove .hidden from #view-xml
+										add .border-primary .text-primary to me
+										remove .border-transparent .text-muted from me
+										add .border-transparent .text-muted to #tab-form
+										remove .border-primary .text-primary from #tab-form
+										call pkginfoFormToData()">
+									if meta["platform"] == "windows" {
+										YAML
+									} else {
+										XML
+									}
+								</button>
+							</div>
+							<!-- Form View -->
+							<div id="view-form">
+								<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped">
+									<tr>
+										<td class="!align-middle w-1/4">{ i18n.T(ctx, "Name") } *</td>
+										<td class="!align-middle">
+											<input class="uk-input" type="text" name="pkg-name" required spellcheck="false" autocomplete="off" value={ meta["name"] }/>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.display_name") }</td>
+										<td class="!align-middle">
+											<input class="uk-input" type="text" name="pkg-display-name" spellcheck="false" autocomplete="off" value={ meta["display_name"] }/>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.version") } *</td>
+										<td class="!align-middle">
+											<input class="uk-input" type="text" name="pkg-version" required spellcheck="false" autocomplete="off" value={ meta["version"] }/>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.platform") } *</td>
+										<td class="!align-middle">
+											<input type="hidden" name="pkg-platform" value={ meta["platform"] }/>
+											if meta["platform"] == "darwin" {
+												macOS
+											} else {
+												Windows
+											}
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.category") }</td>
+										<td class="!align-middle">
+											<input class="uk-input" type="text" name="pkg-category" spellcheck="false" autocomplete="off" value={ meta["category"] }/>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.developer") }</td>
+										<td class="!align-middle">
+											<input class="uk-input" type="text" name="pkg-developer" spellcheck="false" autocomplete="off" value={ meta["developer"] }/>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.description_field") }</td>
+										<td class="!align-middle">
+											<textarea class="uk-textarea" name="pkg-description" rows="3">{ meta["description"] }</textarea>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.icon") }</td>
+										<td class="!align-middle">
+											<input class="uk-input" type="file" name="pkg-icon" accept=".png" />
+											<p class="uk-text-small uk-text-muted mt-1">PNG, 350x350px { i18n.T(ctx, "deploy_packages.icon_hint") }</p>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.repo") } *</td>
+										<td class="!align-middle">
+											<select class="uk-select" name="pkg-repo-id" required>
+												for _, repo := range repos {
+													<option value={ strconv.Itoa(repo.ID) }>{ repo.Name } ({ repo.RepoType.String() })</option>
+												}
+											</select>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.catalog") }</td>
+										<td class="!align-middle">
+											for _, cat := range catalogs {
+												<label class="flex items-center gap-2 mb-1">
+													<input class="uk-checkbox" type="checkbox" name="pkg-catalogs" value={ strconv.Itoa(cat.ID) }/>
+													{ cat.Name }
+												</label>
+											}
+										</td>
+									</tr>
+
+								</table>
+							</div>
+							<!-- Data View (XML/YAML) -->
+							<div id="view-xml" class="hidden">
+								<p class="uk-text-small uk-text-muted mb-2">
+									{ i18n.T(ctx, "deploy_packages.pkginfo_hint") }
+								</p>
+								<textarea class="uk-textarea font-mono text-xs" id="pkg-pkginfo-data" name="pkg-pkginfo-data" rows="24" spellcheck="false">{ meta["pkginfo_data"] }</textarea>
+							</div>
+							<div class="flex flex-row-reverse gap-2 items-center">
+								<button type="submit" class="uk-button uk-button-primary"
+									_="on click call pkginfoFormToData()">
+									{ i18n.T(ctx, "deploy_packages.upload") }
+								</button>
+								<button
+									type="button"
+									class="uk-button uk-button-default"
+									hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages"))) }
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-push-url="true"
+								>
+									{ i18n.T(ctx, "Cancel") }
+								</button>
+							</div>
+						</form>
+						@pkginfoSyncScript(meta["platform"])
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+func packageHasCatalog(pkg *ent.SoftwarePackage, catalogID int) bool {
+	if pkg.Edges.Catalogs == nil {
+		return false
+	}
+	for _, c := range pkg.Edges.Catalogs {
+		if c.ID == catalogID {
+			return true
+		}
+	}
+	return false
+}
+
+templ PackageDetail(c echo.Context, pkg *ent.SoftwarePackage, logs []*ent.SoftwareInstallLog, assignments []*ent.SoftwareAssignment, commonInfo *partials.CommonInfo) {
+	<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { pkg.Name }</title>
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: i18n.T(ctx, "deploy_packages.title"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages")))}, {Title: pkg.Name, Url: ""}}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@DeployNavbar("packages", commonInfo)
+				<div id="success" class="hidden"></div>
+				<div id="error" class="hidden"></div>
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header flex justify-between items-center">
+						<div class="flex items-center gap-3">
+							@packageIconFromPkg(pkg, commonInfo)
+							<div>
+								<h3 class="uk-card-title">
+									if pkg.DisplayName != "" {
+										{ pkg.DisplayName }
+									} else {
+										{ pkg.Name }
+									}
+									<span class="uk-text-muted uk-text-small ml-2">{ pkg.Version }</span>
+								</h3>
+								if pkg.Description != "" {
+									<p class="uk-margin-small-top uk-text-small">{ pkg.Description }</p>
+								}
+							</div>
+						</div>
+						<div class="flex gap-2">
+							if pkg.Source == softwarepackage.SourceGlobalSubscription {
+								<span class="uk-badge uk-badge-secondary flex items-center gap-1">
+									<uk-icon hx-history="false" icon="rss" custom-class="h-4 w-4" uk-cloack></uk-icon>
+									{ i18n.T(ctx, "deploy_packages.subscribed") }
+								</span>
+							} else {
+								<button
+									class="uk-button uk-button-primary uk-button-small flex items-center gap-1"
+									hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/deploy/packages/%d/edit", pkg.ID)))) }
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-push-url="true"
+								>
+									<uk-icon hx-history="false" icon="pencil" custom-class="h-4 w-4" uk-cloack></uk-icon>
+									{ i18n.T(ctx, "Edit") }
+								</button>
+								<button
+									class="uk-button uk-button-danger uk-button-small flex items-center gap-1"
+									hx-delete={ string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/deploy/packages/%d", pkg.ID)))) }
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-confirm={ i18n.T(ctx, "deploy_packages.confirm_delete") }
+								>
+									<uk-icon hx-history="false" icon="trash-2" custom-class="h-4 w-4" uk-cloack></uk-icon>
+									{ i18n.T(ctx, "Delete") }
+								</button>
+							}
+						</div>
+					</div>
+					<div class="uk-card-body">
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+							<div>
+								<h4 class="uk-text-bold mb-2">{ i18n.T(ctx, "deploy_packages.detail_info") }</h4>
+								<table class="uk-table uk-table-divider uk-table-small">
+									<tr>
+										<td class="uk-text-muted w-1/3">{ i18n.T(ctx, "Name") }</td>
+										<td>{ pkg.Name }</td>
+									</tr>
+									if pkg.DisplayName != "" {
+										<tr>
+											<td class="uk-text-muted">{ i18n.T(ctx, "deploy_packages.display_name") }</td>
+											<td>{ pkg.DisplayName }</td>
+										</tr>
+									}
+									<tr>
+										<td class="uk-text-muted">{ i18n.T(ctx, "deploy_packages.version") }</td>
+										<td>{ pkg.Version }</td>
+									</tr>
+									<tr>
+										<td class="uk-text-muted">{ i18n.T(ctx, "deploy_packages.platform") }</td>
+										<td>@partials.OSBadge(string(pkg.Platform))</td>
+									</tr>
+									if pkg.Category != "" {
+										<tr>
+											<td class="uk-text-muted">{ i18n.T(ctx, "deploy_packages.category") }</td>
+											<td>{ pkg.Category }</td>
+										</tr>
+									}
+									if pkg.Developer != "" {
+										<tr>
+											<td class="uk-text-muted">{ i18n.T(ctx, "deploy_packages.developer") }</td>
+											<td>{ pkg.Developer }</td>
+										</tr>
+									}
+								</table>
+							</div>
+							<div>
+								<h4 class="uk-text-bold mb-2">{ i18n.T(ctx, "deploy_packages.detail_technical") }</h4>
+								<table class="uk-table uk-table-divider uk-table-small">
+									<tr>
+										<td class="uk-text-muted w-1/3">{ i18n.T(ctx, "deploy_packages.file_path") }</td>
+										<td class="uk-text-small break-all">{ pkg.InstallerPath }</td>
+									</tr>
+									<tr>
+										<td class="uk-text-muted">{ i18n.T(ctx, "deploy_packages.size") }</td>
+										<td>{ formatBytes(pkg.SizeBytes) }</td>
+									</tr>
+									if pkg.ChecksumSha256 != "" {
+										<tr>
+											<td class="uk-text-muted">SHA256</td>
+											<td class="uk-text-small break-all">{ pkg.ChecksumSha256 }</td>
+										</tr>
+									}
+									<tr>
+										<td class="uk-text-muted">{ i18n.T(ctx, "deploy_packages.source") }</td>
+										<td>
+											if pkg.Source == softwarepackage.SourceGlobalSubscription {
+												<span class="uk-badge uk-badge-secondary flex items-center gap-1 w-fit">
+													<uk-icon hx-history="false" icon="rss" custom-class="h-3 w-3" uk-cloack></uk-icon>
+													{ i18n.T(ctx, "deploy_packages.subscribed") }
+												</span>
+											} else if pkg.Source == softwarepackage.SourceGlobal {
+												<span class="uk-badge uk-badge-primary flex items-center gap-1 w-fit">
+													<uk-icon hx-history="false" icon="globe" custom-class="h-3 w-3" uk-cloack></uk-icon>
+													Global
+												</span>
+											} else {
+												<span class="uk-badge">Upload</span>
+											}
+										</td>
+									</tr>
+									if repo := pkg.Edges.Repo; repo != nil {
+										<tr>
+											<td class="uk-text-muted">{ i18n.T(ctx, "deploy_packages.repo") }</td>
+											<td>{ repo.Name }</td>
+										</tr>
+									}
+
+								</table>
+							</div>
+						</div>
+						if pkg.Source != softwarepackage.SourceGlobalSubscription {
+							<div class="mt-6">
+								<h4 class="uk-text-bold mb-2">{ i18n.T(ctx, "deploy_packages.catalogs") }</h4>
+								if catalogs := pkg.Edges.Catalogs; len(catalogs) > 0 {
+									<div class="flex gap-2">
+										for _, cat := range catalogs {
+											<span class="uk-badge">{ cat.Name }</span>
+										}
+									</div>
+								} else {
+									<p class="uk-text-small uk-text-muted">{ i18n.T(ctx, "deploy_packages.no_catalogs_assigned") }</p>
+								}
+							</div>
+							<div class="mt-6">
+								<h4 class="uk-text-bold mb-2">{ i18n.T(ctx, "deploy_assignments.title") }</h4>
+								if len(assignments) > 0 {
+									<table class="uk-table uk-table-divider uk-table-small uk-table-striped mt-2">
+										<thead>
+											<tr>
+												<th>{ i18n.T(ctx, "deploy_assignments.target_type") }</th>
+												<th>{ i18n.T(ctx, "deploy_assignments.target") }</th>
+												<th>{ i18n.T(ctx, "deploy_assignments.type") }</th>
+												<th>{ i18n.T(ctx, "deploy_assignments.active") }</th>
+											</tr>
+										</thead>
+										<tbody>
+											for _, a := range assignments {
+												<tr>
+													<td class="!align-middle uk-text-small">{ string(a.TargetType) }</td>
+													<td class="!align-middle uk-text-small">{ a.TargetID }</td>
+													<td class="!align-middle">
+														<span class={ "uk-badge", templ.KV("uk-badge-primary", string(a.AssignmentType) == "managed_install"), templ.KV("uk-badge-danger", string(a.AssignmentType) == "managed_uninstall") }>
+															{ string(a.AssignmentType) }
+														</span>
+													</td>
+													<td class="!align-middle">
+														if a.Active {
+															<uk-icon icon="check" custom-class="h-5 w-5 text-green-600" uk-cloack></uk-icon>
+														} else {
+															<uk-icon icon="x" custom-class="h-5 w-5 text-red-600" uk-cloack></uk-icon>
+														}
+													</td>
+												</tr>
+											}
+										</tbody>
+									</table>
+								} else {
+									<p class="uk-text-small uk-text-muted">{ i18n.T(ctx, "deploy_assignments.no_assignments") }</p>
+								}
+							</div>
+						}
+						<div class="mt-6">
+							<h4 class="uk-text-bold mb-2">{ i18n.T(ctx, "deploy_packages.install_history") }</h4>
+							if len(logs) > 0 {
+								<table class="uk-table uk-table-divider uk-table-small uk-table-striped mt-2">
+									<thead>
+										<tr>
+											<th>{ i18n.T(ctx, "deploy_packages.agent") }</th>
+											<th>{ i18n.T(ctx, "managed_software.action") }</th>
+											<th>{ i18n.T(ctx, "managed_software.status") }</th>
+											<th>{ i18n.T(ctx, "managed_software.date") }</th>
+											<th>{ i18n.T(ctx, "managed_software.error") }</th>
+										</tr>
+									</thead>
+									<tbody>
+										for _, log := range logs {
+											<tr>
+												<td class="!align-middle uk-text-small">
+													if a := log.Edges.Agent; a != nil {
+														{ a.Hostname }
+													}
+												</td>
+												<td class="!align-middle">
+													<span class={ "uk-badge", templ.KV("uk-badge-primary", string(log.Action) == "install"), templ.KV("uk-badge-danger", string(log.Action) == "uninstall") }>
+														{ string(log.Action) }
+													</span>
+												</td>
+												<td class="!align-middle">
+													<span class={ "uk-badge", templ.KV("uk-badge-success", string(log.Status) == "success"), templ.KV("uk-badge-danger", string(log.Status) == "failed"), templ.KV("uk-badge-warning", string(log.Status) == "pending" || string(log.Status) == "downloading" || string(log.Status) == "installing") }>
+														{ string(log.Status) }
+													</span>
+												</td>
+												<td class="!align-middle uk-text-small">{ log.Created.Format("2006-01-02 15:04") }</td>
+												<td class="!align-middle uk-text-small">
+													if log.ErrorMessage != "" {
+														<span class="text-red-600">{ log.ErrorMessage }</span>
+													}
+												</td>
+											</tr>
+										}
+									</tbody>
+								</table>
+							} else {
+								<p class="uk-text-small uk-text-muted">{ i18n.T(ctx, "deploy_packages.no_install_history") }</p>
+							}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+templ PackageEditForm(c echo.Context, pkg *ent.SoftwarePackage, repos []*ent.SoftwareRepo, catalogs []*ent.SoftwareCatalog, commonInfo *partials.CommonInfo, errMessage string) {
+	<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "deploy_packages.edit") }</title>
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: i18n.T(ctx, "deploy_packages.title"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages")))}, {Title: i18n.T(ctx, "deploy_packages.edit"), Url: ""}}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@DeployNavbar("packages", commonInfo)
+				<div id="success" class="hidden"></div>
+				if errMessage != "" {
+					@partials.ErrorMessage(errMessage, true)
+				} else {
+					<div id="error" class="hidden"></div>
+				}
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "deploy_packages.edit") }: { pkg.Name } { pkg.Version }</h3>
+					</div>
+					<div class="uk-card-body">
+						<form
+							class="flex flex-col mt-4 gap-4 w-2/3"
+							hx-put={ string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/deploy/packages/%d", pkg.ID)))) }
+							hx-target="#main"
+							hx-swap="outerHTML"
+							hx-push-url="false"
+							hx-encoding="multipart/form-data"
+						>
+							<!-- Tab Toggle -->
+							<div class="flex gap-1 border-b border-gray-200">
+								<button type="button" id="tab-form" class="px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary"
+									_="on click
+										remove .hidden from #view-form
+										add .hidden to #view-xml
+										add .border-primary .text-primary to me
+										remove .border-transparent .text-muted from me
+										add .border-transparent .text-muted to #tab-xml
+										remove .border-primary .text-primary from #tab-xml
+										call pkginfoDataToForm()">
+									Form
+								</button>
+								<button type="button" id="tab-xml" class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-muted"
+									_="on click
+										add .hidden to #view-form
+										remove .hidden from #view-xml
+										add .border-primary .text-primary to me
+										remove .border-transparent .text-muted from me
+										add .border-transparent .text-muted to #tab-form
+										remove .border-primary .text-primary from #tab-form
+										call pkginfoFormToData()">
+									if pkg.Platform.String() == "windows" {
+										YAML
+									} else {
+										XML
+									}
+								</button>
+							</div>
+							<!-- Form View -->
+							<div id="view-form">
+								<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped mt-4">
+									<tr>
+										<td class="!align-middle w-1/4">{ i18n.T(ctx, "Name") } *</td>
+										<td class="!align-middle">
+											<input class="uk-input" type="text" name="pkg-name" value={ pkg.Name } required spellcheck="false" autocomplete="off"/>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.display_name") }</td>
+										<td class="!align-middle">
+											<input class="uk-input" type="text" name="pkg-display-name" value={ pkg.DisplayName } spellcheck="false" autocomplete="off"/>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.version") } *</td>
+										<td class="!align-middle">
+											<input class="uk-input" type="text" name="pkg-version" value={ pkg.Version } required spellcheck="false" autocomplete="off"/>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.platform") } *</td>
+										<td class="!align-middle">
+											<input type="hidden" name="pkg-platform" value={ string(pkg.Platform) }/>
+											if string(pkg.Platform) == "darwin" {
+												macOS
+											} else {
+												Windows
+											}
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.category") }</td>
+										<td class="!align-middle">
+											<input class="uk-input" type="text" name="pkg-category" value={ pkg.Category } spellcheck="false" autocomplete="off"/>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.developer") }</td>
+										<td class="!align-middle">
+											<input class="uk-input" type="text" name="pkg-developer" value={ pkg.Developer } spellcheck="false" autocomplete="off"/>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.description_field") }</td>
+										<td class="!align-middle">
+											<textarea class="uk-textarea" name="pkg-description" rows="3">{ pkg.Description }</textarea>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.icon") }</td>
+										<td class="!align-middle">
+											if pkg.IconName != "" {
+												<div class="flex items-center gap-2 mb-2">
+													<span class="uk-text-small uk-text-muted">{ i18n.T(ctx, "deploy_packages.current_icon") }: { pkg.IconName }</span>
+												</div>
+											}
+											<input class="uk-input" type="file" name="pkg-icon" accept=".png" />
+											<p class="uk-text-small uk-text-muted mt-1">PNG, 350x350px { i18n.T(ctx, "deploy_packages.icon_hint") }</p>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.catalog") }</td>
+										<td class="!align-middle">
+											for _, cat := range catalogs {
+												<label class="flex items-center gap-2 mb-1">
+													<input class="uk-checkbox" type="checkbox" name="pkg-catalogs" value={ strconv.Itoa(cat.ID) } checked?={ packageHasCatalog(pkg, cat.ID) }/>
+													{ cat.Name }
+												</label>
+											}
+										</td>
+									</tr>
+
+								</table>
+							</div>
+							<!-- Data View (XML/YAML) -->
+							<div id="view-xml" class="hidden">
+								<p class="uk-text-small uk-text-muted mb-2">
+									{ i18n.T(ctx, "deploy_packages.pkginfo_hint") }
+								</p>
+								<textarea class="uk-textarea font-mono text-xs" id="pkg-pkginfo-data" name="pkg-pkginfo-data" rows="24" spellcheck="false">{ pkg.PkginfoData }</textarea>
+							</div>
+							<div class="flex flex-row-reverse gap-2">
+								<button type="submit" class="uk-button uk-button-primary" _="on click call pkginfoFormToData()">
+									{ i18n.T(ctx, "deploy_packages.save") }
+								</button>
+								<button
+									type="button"
+									class="uk-button uk-button-default"
+									hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, fmt.Sprintf("/deploy/packages/%d", pkg.ID)))) }
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-push-url="true"
+								>
+									{ i18n.T(ctx, "Cancel") }
+								</button>
+							</div>
+						</form>
+						@pkginfoSyncScript(pkg.Platform.String())
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+templ PackageSubscribeForm(c echo.Context, globalPackages []models.PackageGroup, commonInfo *partials.CommonInfo, errMessage string) {
+	<title>OpenUEM | { i18n.T(ctx, "Deploy") } | { i18n.T(ctx, "deploy_packages.subscribe") }</title>
+	@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Deploy"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy")))}, {Title: i18n.T(ctx, "deploy_packages.title"), Url: string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages")))}, {Title: i18n.T(ctx, "deploy_packages.subscribe"), Url: ""}}, commonInfo)
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@DeployNavbar("packages", commonInfo)
+				<div id="success" class="hidden"></div>
+				if errMessage != "" {
+					@partials.ErrorMessage(errMessage, true)
+				} else {
+					<div id="error" class="hidden"></div>
+				}
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "deploy_packages.subscribe") }</h3>
+						<p class="uk-margin-small-top uk-text-small">
+							{ i18n.T(ctx, "deploy_packages.subscribe_description") }
+						</p>
+					</div>
+					<div class="uk-card-body">
+						if len(globalPackages) > 0 {
+							<form
+								class="flex flex-col mt-4 gap-4 w-2/3"
+								hx-post={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages/import"))) }
+								hx-target="#main"
+								hx-swap="outerHTML"
+								hx-push-url="false"
+							>
+								<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped mt-4">
+									<tr>
+										<td class="!align-middle w-1/4">{ i18n.T(ctx, "deploy_packages.select_package") } *</td>
+										<td class="!align-middle">
+											<select class="uk-select" name="import-package" required>
+												for _, pkg := range globalPackages {
+													<option value={ fmt.Sprintf("%s|%s", pkg.Name, pkg.Platform) }>
+														if pkg.DisplayName != "" {
+															{ pkg.DisplayName }
+														} else {
+															{ pkg.Name }
+														}
+														({ platformLabel(pkg.Platform) })
+														if pkg.VersionCount > 1 {
+															— { strconv.Itoa(pkg.VersionCount) } versions
+														}
+													</option>
+												}
+											</select>
+										</td>
+									</tr>
+									<tr>
+										<td class="!align-middle">{ i18n.T(ctx, "deploy_packages.catalogs") }</td>
+										<td class="!align-middle uk-text-small">
+											<span class="uk-text-muted">{ i18n.T(ctx, "deploy_packages.subscribe_catalog_info") }</span>
+										</td>
+									</tr>
+								</table>
+								<div class="flex flex-row-reverse gap-2">
+									<button type="submit" class="uk-button uk-button-primary">
+										{ i18n.T(ctx, "deploy_packages.subscribe") }
+									</button>
+									<button
+										type="button"
+										class="uk-button uk-button-default"
+										hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages"))) }
+										hx-target="#main"
+										hx-swap="outerHTML"
+										hx-push-url="true"
+									>
+										{ i18n.T(ctx, "Cancel") }
+									</button>
+								</div>
+							</form>
+						} else {
+							<p class="uk-text-small uk-text-muted mt-4">
+								{ i18n.T(ctx, "deploy_packages.no_global_packages") }
+							</p>
+							<button
+								type="button"
+								class="uk-button uk-button-default mt-2"
+								hx-get={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/packages"))) }
+								hx-target="#main"
+								hx-swap="outerHTML"
+								hx-push-url="true"
+							>
+								{ i18n.T(ctx, "Back") }
+							</button>
+						}
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+// pkginfoSyncScript provides JavaScript functions to sync between Form and data views (XML for macOS, YAML for Windows).
+// Form fields are synced into the pkginfo data, and vice versa. The data view is the source of truth.
+templ pkginfoSyncScript(platform string) {
+	<input type="hidden" id="pkg-platform-hint" value={ platform }/>
+	<script>
+	// Map of form field name → pkginfo key (string fields only)
+	const pkginfoFieldMap = {
+		'pkg-name': 'name',
+		'pkg-display-name': 'display_name',
+		'pkg-version': 'version',
+		'pkg-description': 'description',
+		'pkg-category': 'category',
+		'pkg-developer': 'developer',
+		'pkg-platform': 'platform',
+	};
+
+	function getPkgPlatform() {
+		// Read from hidden input (or platform select if present)
+		var hint = document.getElementById('pkg-platform-hint');
+		if (hint) return hint.value;
+		var sel = document.querySelector('[name="pkg-platform"]');
+		if (sel) return sel.value;
+		return '';
+	}
+
+	// --- Dispatcher: calls XML or YAML functions based on platform ---
+	function pkginfoFormToData() {
+		if (getPkgPlatform() === 'windows') { pkginfoFormToYaml(); }
+		else { pkginfoFormToXml(); }
+	}
+	function pkginfoDataToForm() {
+		if (getPkgPlatform() === 'windows') { pkginfoYamlToForm(); }
+		else { pkginfoXmlToForm(); }
+	}
+
+	// ==================== YAML helpers (Windows / CIMIAN) ====================
+	// Simple line-based YAML get/set — works for flat top-level keys.
+	function yamlGet(text, key) {
+		const re = new RegExp('^' + escRe(key) + ':\\s*(.*)$', 'm');
+		const m = text.match(re);
+		return m ? m[1].replace(/^["']|["']$/g, '') : '';
+	}
+	function yamlGetBool(text, key) {
+		return yamlGet(text, key) === 'true';
+	}
+	function yamlSet(text, key, value) {
+		const re = new RegExp('^' + escRe(key) + ':.*$', 'm');
+		const line = key + ': ' + yamlQuote(value);
+		if (re.test(text)) { return text.replace(re, line); }
+		return text.trimEnd() + '\n' + line + '\n';
+	}
+	function yamlSetBool(text, key, val) {
+		const re = new RegExp('^' + escRe(key) + ':.*$', 'm');
+		const line = key + ': ' + val;
+		if (re.test(text)) { return text.replace(re, line); }
+		return text.trimEnd() + '\n' + line + '\n';
+	}
+	function yamlRemove(text, key) {
+		const re = new RegExp('^' + escRe(key) + ':.*\\n?', 'm');
+		return text.replace(re, '');
+	}
+	function yamlQuote(s) {
+		if (/[:#\[\]{}&*!|>'"%@`,\n]/.test(s) || s === '') { return '"' + s.replace(/\\/g,'\\\\').replace(/"/g,'\\"') + '"'; }
+		return s;
+	}
+
+	function pkginfoFormToYaml() {
+		const ta = document.getElementById('pkg-pkginfo-data');
+		if (!ta) return;
+		let text = ta.value || '';
+		for (const [formName, yamlKey] of Object.entries(pkginfoFieldMap)) {
+			const el = document.querySelector('[name="' + formName + '"]');
+			if (!el) continue;
+			const val = el.value.trim();
+			if (val) { text = yamlSet(text, yamlKey, val); }
+			else { text = yamlRemove(text, yamlKey); }
+		}
+		const uai = document.querySelector('[name="pkg-unattended-install"]');
+		if (uai) { text = yamlSetBool(text, 'unattended_install', uai.value === 'true'); }
+		const uau = document.querySelector('[name="pkg-unattended-uninstall"]');
+		if (uau) { text = yamlSetBool(text, 'unattended_uninstall', uau.value === 'true'); }
+		ta.value = text;
+	}
+
+	function pkginfoYamlToForm() {
+		const ta = document.getElementById('pkg-pkginfo-data');
+		if (!ta || !ta.value.trim()) return;
+		const text = ta.value;
+		for (const [formName, yamlKey] of Object.entries(pkginfoFieldMap)) {
+			const el = document.querySelector('[name="' + formName + '"]');
+			if (!el) continue;
+			const val = yamlGet(text, yamlKey);
+			if (el.tagName === 'SELECT') {
+				for (const opt of el.options) { if (opt.value === val) { el.value = val; break; } }
+			} else { el.value = val; }
+		}
+		const uai = document.querySelector('[name="pkg-unattended-install"]');
+		if (uai) { uai.value = yamlGetBool(text, 'unattended_install') ? 'true' : 'false'; }
+		const uau = document.querySelector('[name="pkg-unattended-uninstall"]');
+		if (uau) { uau.value = yamlGetBool(text, 'unattended_uninstall') ? 'true' : 'false'; }
+	}
+
+	// ==================== XML helpers (macOS / Munki) ====================
+	function plistGet(xml, key) {
+		const re = new RegExp('<key>' + escRe(key) + '</key>\\s*<string>(.*?)</string>', 's');
+		const m = xml.match(re);
+		return m ? decXml(m[1]) : '';
+	}
+	function plistGetBool(xml, key) {
+		const re = new RegExp('<key>' + escRe(key) + '</key>\\s*<(true|false)\\s*/>', 's');
+		const m = xml.match(re);
+		return m ? m[1] === 'true' : false;
+	}
+	function plistSet(xml, key, value) {
+		const esc = escXml(value);
+		const re = new RegExp('\\t<key>' + escRe(key) + '</key>\\s*\\t<string>.*?</string>\\n?', 's');
+		if (re.test(xml)) {
+			return xml.replace(re, '\t<key>' + key + '</key>\n\t<string>' + esc + '</string>\n');
+		}
+		const idx = xml.lastIndexOf('</dict>');
+		if (idx >= 0) {
+			return xml.slice(0, idx) + '\t<key>' + key + '</key>\n\t<string>' + esc + '</string>\n' + xml.slice(idx);
+		}
+		return xml;
+	}
+	function plistSetBool(xml, key, val) {
+		const tag = val ? '<true/>' : '<false/>';
+		const re = new RegExp('\\t<key>' + escRe(key) + '</key>\\s*\\t<(?:true|false)\\s*/>\\n?', 's');
+		if (re.test(xml)) {
+			return xml.replace(re, '\t<key>' + key + '</key>\n\t' + tag + '\n');
+		}
+		const idx = xml.lastIndexOf('</dict>');
+		if (idx >= 0) {
+			return xml.slice(0, idx) + '\t<key>' + key + '</key>\n\t' + tag + '\n' + xml.slice(idx);
+		}
+		return xml;
+	}
+	function plistRemove(xml, key) {
+		const r1 = new RegExp('\\t<key>' + escRe(key) + '</key>\\s*\\t<string>.*?</string>\\n?', 's');
+		const r2 = new RegExp('\\t<key>' + escRe(key) + '</key>\\s*\\t<(?:true|false)\\s*/>\\n?', 's');
+		return xml.replace(r1, '').replace(r2, '');
+	}
+
+	function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+	function escXml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+	function decXml(s) { return s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"'); }
+
+	function pkginfoFormToXml() {
+		const ta = document.getElementById('pkg-pkginfo-data');
+		if (!ta) return;
+		let xml = ta.value;
+		if (!xml.includes('<dict>')) {
+			xml = '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n</dict>\n</plist>\n';
+		}
+		for (const [formName, plistKey] of Object.entries(pkginfoFieldMap)) {
+			const el = document.querySelector('[name="' + formName + '"]');
+			if (!el) continue;
+			const val = el.value.trim();
+			if (val) { xml = plistSet(xml, plistKey, val); }
+			else { xml = plistRemove(xml, plistKey); }
+		}
+		const uai = document.querySelector('[name="pkg-unattended-install"]');
+		if (uai) { xml = plistSetBool(xml, 'unattended_install', uai.value === 'true'); }
+		const uau = document.querySelector('[name="pkg-unattended-uninstall"]');
+		if (uau) { xml = plistSetBool(xml, 'unattended_uninstall', uau.value === 'true'); }
+		ta.value = xml;
+	}
+
+	function pkginfoXmlToForm() {
+		const ta = document.getElementById('pkg-pkginfo-data');
+		if (!ta || !ta.value.includes('<dict>')) return;
+		const xml = ta.value;
+		for (const [formName, plistKey] of Object.entries(pkginfoFieldMap)) {
+			const el = document.querySelector('[name="' + formName + '"]');
+			if (!el) continue;
+			const val = plistGet(xml, plistKey);
+			if (el.tagName === 'SELECT') {
+				for (const opt of el.options) { if (opt.value === val) { el.value = val; break; } }
+			} else { el.value = val; }
+		}
+		const uai = document.querySelector('[name="pkg-unattended-install"]');
+		if (uai) { uai.value = plistGetBool(xml, 'unattended_install') ? 'true' : 'false'; }
+		const uau = document.querySelector('[name="pkg-unattended-uninstall"]');
+		if (uau) { uau.value = plistGetBool(xml, 'unattended_uninstall') ? 'true' : 'false'; }
+	}
+	</script>
+}

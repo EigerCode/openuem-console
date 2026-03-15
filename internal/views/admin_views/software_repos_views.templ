@@ -1,0 +1,282 @@
+package admin_views
+
+import (
+	"fmt"
+	"github.com/invopop/ctxi18n/i18n"
+	"github.com/labstack/echo/v4"
+	"github.com/open-uem/ent"
+	"github.com/open-uem/openuem-console/internal/views/layout"
+	"github.com/open-uem/openuem-console/internal/views/partials"
+	"strconv"
+)
+
+templ SoftwareRepos(c echo.Context, repos []*ent.SoftwareRepo, agentsExists, serversExists bool, commonInfo *partials.CommonInfo, tenantName string, successMessage string) {
+	if commonInfo.TenantID == "-1" {
+		@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Global Config"), Url: "/admin/users"}, {Title: i18n.T(ctx, "software_repos.title"), Url: "/admin/software-repos"}}, commonInfo)
+	} else {
+		@partials.Header(c, []partials.Breadcrumb{{Title: tenantName, Url: string(templ.URL(fmt.Sprintf("/tenant/%s/admin/tags", commonInfo.TenantID)))}, {Title: i18n.T(ctx, "software_repos.title"), Url: string(templ.URL(fmt.Sprintf("/tenant/%s/admin/software-repos", commonInfo.TenantID)))}}, commonInfo)
+	}
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@ConfigNavbar("software-repos", agentsExists, serversExists, commonInfo)
+				if successMessage != "" {
+					@partials.SuccessMessage(successMessage)
+				} else {
+					<div id="success" class="hidden"></div>
+				}
+				<div id="error" class="hidden"></div>
+				<div id="confirm" class="hidden"></div>
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">{ i18n.T(ctx, "software_repos.title") }</h3>
+						<p class="uk-margin-small-top uk-text-small">
+							if commonInfo.TenantID == "-1" {
+								{ i18n.T(ctx, "software_repos.description_global") }
+							} else {
+								{ i18n.T(ctx, "software_repos.description_tenant") }
+							}
+						</p>
+					</div>
+					<div class="uk-card-body">
+						if len(repos) > 0 {
+							<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped mt-4">
+								<thead>
+									<tr>
+										<th>{ i18n.T(ctx, "Name") }</th>
+										<th>{ i18n.T(ctx, "software_repos.endpoint") }</th>
+										<th>{ i18n.T(ctx, "software_repos.bucket") }</th>
+										<th>{ i18n.T(ctx, "software_repos.default") }</th>
+										<th>{ i18n.T(ctx, "Actions") }</th>
+									</tr>
+								</thead>
+								<tbody>
+									for _, repo := range repos {
+										<tr>
+											<td class="!align-middle">{ repo.Name }</td>
+											<td class="!align-middle uk-text-small">{ repo.Endpoint }</td>
+											<td class="!align-middle uk-text-small">{ repo.Bucket }</td>
+											<td class="!align-middle">
+												if repo.IsDefault {
+													<uk-icon icon="check" custom-class="h-5 w-5 text-green-600" uk-cloack></uk-icon>
+												}
+											</td>
+											<td class="!align-middle">
+												<div class="flex gap-2">
+													<button
+														class="text-blue-600"
+														title={ i18n.T(ctx, "software_repos.edit") }
+														if commonInfo.TenantID != "-1" {
+															hx-get={ string(templ.URL(fmt.Sprintf("/tenant/%s/admin/software-repos/%d/edit", commonInfo.TenantID, repo.ID))) }
+														} else {
+															hx-get={ fmt.Sprintf("/admin/software-repos/%d/edit", repo.ID) }
+														}
+														hx-target="#main"
+														hx-swap="outerHTML"
+														hx-push-url="true"
+													>
+														<uk-icon hx-history="false" icon="pencil" custom-class="h-5 w-5" uk-cloack></uk-icon>
+													</button>
+													<button
+														class="text-amber-600"
+														title={ i18n.T(ctx, "software_repos.test_connection") }
+														if commonInfo.TenantID != "-1" {
+															hx-post={ string(templ.URL(fmt.Sprintf("/tenant/%s/admin/software-repos/%d/test", commonInfo.TenantID, repo.ID))) }
+														} else {
+															hx-post={ fmt.Sprintf("/admin/software-repos/%d/test", repo.ID) }
+														}
+														hx-target="#success"
+														hx-swap="outerHTML"
+														hx-push-url="false"
+														hx-indicator={ fmt.Sprintf("#test-spinner-%d", repo.ID) }
+													>
+														<uk-icon hx-history="false" icon="plug" custom-class="h-5 w-5" uk-cloack></uk-icon>
+														<uk-icon id={ fmt.Sprintf("test-spinner-%d", repo.ID) } hx-history="false" icon="loader-circle" custom-class="hx-indicator h-4 w-4 animate-spin" uk-cloack></uk-icon>
+													</button>
+													<button
+														class="text-red-600"
+														title={ i18n.T(ctx, "software_repos.delete") }
+														if commonInfo.TenantID != "-1" {
+															hx-delete={ string(templ.URL(fmt.Sprintf("/tenant/%s/admin/software-repos/%d", commonInfo.TenantID, repo.ID))) }
+														} else {
+															hx-delete={ fmt.Sprintf("/admin/software-repos/%d", repo.ID) }
+														}
+														hx-target="#confirm"
+														hx-swap="outerHTML"
+														hx-push-url="false"
+														hx-confirm={ i18n.T(ctx, "software_repos.confirm_delete") }
+													>
+														<uk-icon hx-history="false" icon="trash-2" custom-class="h-5 w-5" uk-cloack></uk-icon>
+													</button>
+												</div>
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						} else {
+							<p class="uk-text-small uk-text-muted mt-4">
+								{ i18n.T(ctx, "software_repos.no_repos") }
+							</p>
+						}
+						<div class="mt-4">
+							<button
+								class="uk-button uk-button-primary flex items-center gap-2"
+								if commonInfo.TenantID != "-1" {
+									hx-get={ string(templ.URL(fmt.Sprintf("/tenant/%s/admin/software-repos/new", commonInfo.TenantID))) }
+								} else {
+									hx-get="/admin/software-repos/new"
+								}
+								hx-target="#main"
+								hx-swap="outerHTML"
+								hx-push-url="true"
+							>
+								<uk-icon hx-history="false" icon="plus" custom-class="h-5 w-5" uk-cloack></uk-icon>
+								{ i18n.T(ctx, "software_repos.add") }
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+templ SoftwareRepoForm(c echo.Context, repo *ent.SoftwareRepo, isNew bool, agentsExists, serversExists bool, commonInfo *partials.CommonInfo, tenantName string, errMessage string) {
+	if commonInfo.TenantID == "-1" {
+		@partials.Header(c, []partials.Breadcrumb{{Title: i18n.T(ctx, "Global Config"), Url: "/admin/users"}, {Title: i18n.T(ctx, "software_repos.title"), Url: "/admin/software-repos"}, {Title: func() string { if isNew { return i18n.T(ctx, "software_repos.add") }; return repo.Name }(), Url: ""}}, commonInfo)
+	} else {
+		@partials.Header(c, []partials.Breadcrumb{{Title: tenantName, Url: string(templ.URL(fmt.Sprintf("/tenant/%s/admin/tags", commonInfo.TenantID)))}, {Title: i18n.T(ctx, "software_repos.title"), Url: string(templ.URL(fmt.Sprintf("/tenant/%s/admin/software-repos", commonInfo.TenantID)))}, {Title: func() string { if isNew { return i18n.T(ctx, "software_repos.add") }; return repo.Name }(), Url: ""}}, commonInfo)
+	}
+	<main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+		<div class="uk-width-1-2@m uk-card uk-card-default">
+			<div class="uk-card-body uk-flex uk-flex-column gap-4">
+				@ConfigNavbar("software-repos", agentsExists, serversExists, commonInfo)
+				<div id="success" class="hidden"></div>
+				if errMessage != "" {
+					@partials.ErrorMessage(errMessage, true)
+				} else {
+					<div id="error" class="hidden"></div>
+				}
+				<div class="uk-width-1-2@m uk-card uk-card-default">
+					<div class="uk-card-header">
+						<h3 class="uk-card-title">
+							if isNew {
+								{ i18n.T(ctx, "software_repos.add") }
+							} else {
+								{ i18n.T(ctx, "software_repos.edit") }
+							}
+						</h3>
+						<p class="uk-margin-small-top uk-text-small">
+							{ i18n.T(ctx, "software_repos.form_description") }
+						</p>
+					</div>
+					<div class="uk-card-body">
+						<form class="flex flex-col mt-4 gap-4 w-2/3">
+							if !isNew {
+								<input type="hidden" name="repoId" value={ strconv.Itoa(repo.ID) }/>
+							}
+							<table class="uk-table uk-table-divider uk-table-small uk-table-hover uk-table-striped mt-4">
+								<tr>
+									<td class="!align-middle w-1/4">{ i18n.T(ctx, "Name") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="text" name="repo-name" value={ func() string { if !isNew { return repo.Name }; return "" }() } spellcheck="false" autocomplete="off" required/>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "software_repos.endpoint") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="text" name="repo-endpoint" value={ func() string { if !isNew { return repo.Endpoint }; return "" }() } placeholder="https://s3.eu-central-1.amazonaws.com" spellcheck="false" autocomplete="off" required/>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "software_repos.bucket") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="text" name="repo-bucket" value={ func() string { if !isNew { return repo.Bucket }; return "" }() } spellcheck="false" autocomplete="off" required/>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "software_repos.region") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="text" name="repo-region" value={ func() string { if !isNew { return repo.Region }; return "" }() } placeholder="eu-central-1" spellcheck="false" autocomplete="off"/>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "software_repos.access_key") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="password" name="repo-access-key" placeholder={ func() string { if !isNew { return "••••••••" }; return "" }() } spellcheck="false" autocomplete="off"/>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "software_repos.secret_key") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="password" name="repo-secret-key" placeholder={ func() string { if !isNew { return "••••••••" }; return "" }() } spellcheck="false" autocomplete="off"/>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "software_repos.base_path") }</td>
+									<td class="!align-middle">
+										<input class="uk-input" type="text" name="repo-base-path" value={ func() string { if !isNew { return repo.BasePath }; return "" }() } placeholder="/munki-repo" spellcheck="false" autocomplete="off"/>
+									</td>
+								</tr>
+								<tr>
+									<td class="!align-middle">{ i18n.T(ctx, "software_repos.default") }</td>
+									<td class="!align-middle">
+										<select class="uk-select" name="repo-is-default">
+											<option value="true" selected?={ !isNew && repo.IsDefault }>{ i18n.T(ctx, "Yes") }</option>
+											<option value="false" selected?={ isNew || !repo.IsDefault }>{ i18n.T(ctx, "No") }</option>
+										</select>
+									</td>
+								</tr>
+							</table>
+							<div class="flex flex-row-reverse gap-2">
+								<button
+									if isNew {
+										if commonInfo.TenantID != "-1" {
+											hx-post={ string(templ.URL(fmt.Sprintf("/tenant/%s/admin/software-repos", commonInfo.TenantID))) }
+										} else {
+											hx-post="/admin/software-repos"
+										}
+									} else {
+										if commonInfo.TenantID != "-1" {
+											hx-put={ string(templ.URL(fmt.Sprintf("/tenant/%s/admin/software-repos/%d", commonInfo.TenantID, repo.ID))) }
+										} else {
+											hx-put={ fmt.Sprintf("/admin/software-repos/%d", repo.ID) }
+										}
+									}
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-push-url="false"
+									type="submit"
+									class="uk-button uk-button-primary"
+								>
+									{ i18n.T(ctx, "software_repos.save") }
+								</button>
+								<button
+									if commonInfo.TenantID != "-1" {
+										hx-get={ string(templ.URL(fmt.Sprintf("/tenant/%s/admin/software-repos", commonInfo.TenantID))) }
+									} else {
+										hx-get="/admin/software-repos"
+									}
+									hx-target="#main"
+									hx-swap="outerHTML"
+									hx-push-url="true"
+									type="button"
+									class="uk-button uk-button-default"
+								>
+									{ i18n.T(ctx, "Cancel") }
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+}
+
+templ SoftwareReposIndex(title string, cmp templ.Component, commonInfo *partials.CommonInfo) {
+	@layout.Base("admin", commonInfo) {
+		@cmp
+	}
+}
