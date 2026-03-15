@@ -64,7 +64,7 @@ func (w *Worker) GenerateConsoleConfigFromCLI(cCtx *cli.Context) error {
 	if w.RepoCACertPath == "" {
 		w.RepoCACertPath = w.CACertPath
 	}
-	w.Version = "0.11.0"
+	w.Version = "0.12.0"
 
 	return nil
 }

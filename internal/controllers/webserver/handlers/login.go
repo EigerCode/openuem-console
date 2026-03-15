@@ -297,7 +297,13 @@ func (h *Handler) LoginTOTPConfirm(c echo.Context) error {
 			log.Printf("[ERROR]: could not parse referer, reason: %v", err)
 			return RenderError(c, partials.ErrorMessage(err.Error(), true))
 		}
-		u = fmt.Sprintf("https://%s:%s/tenant/%d/site/%d/dashboard", referer.Hostname(), referer.Port(), myTenant.ID, mySite.ID)
+
+		if referer.Port() == "" {
+			u = fmt.Sprintf("https://%s/tenant/%d/site/%d/dashboard", referer.Hostname(), myTenant.ID, mySite.ID)
+		} else {
+			u = fmt.Sprintf("https://%s:%s/tenant/%d/site/%d/dashboard", referer.Hostname(), referer.Port(), myTenant.ID, mySite.ID)
+		}
+
 	} else {
 		u = fmt.Sprintf("https://%s:%s/tenant/%d/site/%d/dashboard", h.ServerName, h.ConsolePort, myTenant.ID, mySite.ID)
 	}
@@ -461,7 +467,13 @@ func (h *Handler) AccessGranted(c echo.Context, user *ent.User) error {
 			log.Printf("[ERROR]: could not parse referer, reason: %v", err)
 			return RenderError(c, partials.ErrorMessage(err.Error(), true))
 		}
-		return c.Redirect(http.StatusFound, fmt.Sprintf("https://%s:%s/tenant/%d/site/%d/dashboard", referer.Hostname(), referer.Port(), myTenant.ID, mySite.ID))
+
+		if referer.Port() == "" {
+			return c.Redirect(http.StatusFound, fmt.Sprintf("https://%s/tenant/%d/site/%d/dashboard", referer.Hostname(), myTenant.ID, mySite.ID))
+		} else {
+			return c.Redirect(http.StatusFound, fmt.Sprintf("https://%s:%s/tenant/%d/site/%d/dashboard", referer.Hostname(), referer.Port(), myTenant.ID, mySite.ID))
+		}
+
 	} else {
 		return c.Redirect(http.StatusFound, fmt.Sprintf("https://%s:%s/tenant/%d/site/%d/dashboard", h.ServerName, h.ConsolePort, myTenant.ID, mySite.ID))
 	}
@@ -699,7 +711,7 @@ func (h *Handler) LoginNewUser(c echo.Context) error {
 
 func generateForgotCode() (string, error) {
 	var charset = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-	var randomCode string
+	var randomCode strings.Builder
 
 	length := 6
 	randomBytes := make([]byte, length)
@@ -710,8 +722,8 @@ func generateForgotCode() (string, error) {
 			return "", fmt.Errorf("failed to generate forgot password code: %v", err)
 		}
 		randomIndex := int(randomBytes[i] % byte(len(charset)))
-		randomCode += string(charset[randomIndex])
+		randomCode.WriteString(string(charset[randomIndex]))
 	}
 
-	return fmt.Sprintf("%s", randomCode[0:6]), nil
+	return fmt.Sprintf("%s", randomCode.String()[0:6]), nil
 }
