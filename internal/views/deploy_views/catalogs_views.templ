@@ -73,15 +73,6 @@ templ Catalogs(c echo.Context, catalogs []*ent.SoftwareCatalog, commonInfo *part
 							<p class="uk-text-small uk-text-muted mt-4">
 								{ i18n.T(ctx, "deploy_catalogs.no_catalogs") }
 							</p>
-							<button
-								class="uk-button uk-button-primary mt-2"
-								hx-post={ string(templ.URL(partials.GetNavigationUrl(commonInfo, "/deploy/catalogs/init"))) }
-								hx-target="#main"
-								hx-swap="outerHTML"
-								hx-push-url="false"
-							>
-								{ i18n.T(ctx, "deploy_catalogs.initialize") }
-							</button>
 						}
 					</div>
 				</div>

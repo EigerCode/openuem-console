@@ -3,11 +3,13 @@ package models
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	ent "github.com/open-uem/ent"
 	"github.com/open-uem/ent/agent"
 	"github.com/open-uem/ent/site"
+	"github.com/open-uem/ent/softwarecatalog"
 	"github.com/open-uem/ent/tenant"
 	"github.com/open-uem/ent/usertenant"
 	"github.com/open-uem/openuem-console/internal/views/filters"
@@ -19,6 +21,10 @@ func (m *Model) CreateDefaultTenant() (*ent.Tenant, error) {
 	for i := 0; i < maxRetries; i++ {
 		t, err := m.Client.Tenant.Create().SetDescription("DefaultTenant").SetIsDefault(true).Save(context.Background())
 		if err == nil {
+			// Auto-initialize default catalogs for the new tenant
+			if initErr := m.InitializeDefaultCatalogs(t.ID); initErr != nil {
+				log.Printf("[WARN]: could not initialize default catalogs for tenant %d: %v", t.ID, initErr)
+			}
 			return t, nil
 		}
 		if !ent.IsConstraintError(err) {
@@ -26,6 +32,18 @@ func (m *Model) CreateDefaultTenant() (*ent.Tenant, error) {
 		}
 	}
 	return nil, fmt.Errorf("could not create default tenant: ID collision after %d retries", maxRetries)
+}
+
+// EnsureDefaultCatalogs checks if a tenant has catalogs and creates them if not.
+func (m *Model) EnsureDefaultCatalogs(tenantID int) error {
+	count, err := m.Client.SoftwareCatalog.Query().Where(softwarecatalog.HasTenantWith(tenant.ID(tenantID))).Count(context.Background())
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return m.InitializeDefaultCatalogs(tenantID)
+	}
+	return nil
 }
 
 func (m *Model) CountTenants() (int, error) {

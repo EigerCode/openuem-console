@@ -30,6 +30,12 @@ func (h *Handler) DeployPackages(c echo.Context, successMessage string) error {
 		return err
 	}
 
+	// Ensure default catalogs exist for this tenant
+	tenantID, _ := strconv.Atoi(commonInfo.TenantID)
+	if tenantID > 0 {
+		_ = h.Model.EnsureDefaultCatalogs(tenantID)
+	}
+
 	// Catalog filter
 	catalogFilter := c.FormValue("filterByCatalog0")
 
